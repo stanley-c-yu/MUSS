@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+clize = "==4.0.3"
+padar-converter = "==0.2.10"
+padar-parallel = "==0.2.4"
+padar-features = "==0.2.9"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"
