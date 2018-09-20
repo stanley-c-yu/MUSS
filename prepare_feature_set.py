@@ -19,25 +19,28 @@ def sort_func(item):
     return dataset.get_file_timestamp(GroupBy.get_data(item))
 
 
-def preprocess_data(item, all_items, **kwargs):
+def flip_and_swap_df(df, x_flip, y_flip, z_flip):
+    df.iloc[:,1:] = orientation.flip_and_swap(
+        df.values[:, 1:], x_flip=x_flip, y_flip=y_flip, z_flip=z_flip)
+    return df
 
+def preprocess_data(item, all_items, **kwargs):
     # get session boundaries
     metas = GroupBy.get_meta(item)
 
     # load data
     data_loader = delayed(fileio.load_sensor)
     loaded_data = data_loader(GroupBy.get_data(item))
-
     # apply offset mapping
     offset_in_secs = delayed(preprocess.get_offset)(GroupBy.get_data(item))
     offset_data = delayed(dataframe.offset)(loaded_data, offset_in_secs)
 
     # apply orientation corrections
-    orientation_corrector = delayed(preprocess.get_orientation_correction)
-    orientation_correction = orientation_corrector(GroupBy.get_data(item))
+    orientation_correction = delayed(
+        preprocess.get_orientation_correction)(GroupBy.get_data(item))
 
-    corrected_data = delayed(orientation.flip_and_swap)(
-        offset_data.values, x_flip=orientation_correction[0], y_flip=orientation_correction[1], z_flip=orientation_correction[2])
+    corrected_data = delayed(flip_and_swap_df)(
+        offset_data, x_flip=orientation_correction[0], y_flip=orientation_correction[1], z_flip=orientation_correction[2])
 
     return GroupBy.bundle(corrected_data, **metas)
 
@@ -45,7 +48,7 @@ def preprocess_data(item, all_items, **kwargs):
 @delayed
 @MhealthWindowing.groupby_windowing('sensor')
 def compute_features(df, **kwargs):
-    return FeatureSet.location_matters(df.values, **kwargs)
+    return FeatureSet.location_matters(df.values[:, 1:], **kwargs)
 
 
 def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_rate=80, scheduler='processes'):
@@ -68,7 +71,7 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
     sensor_files = glob(os.path.join(
         input_folder, '*', 'MasterSynced', '**', 'Actigraph*sensor.csv'), recursive=True)
 
-    sensor_files = list(filter(exclude.exclude_pid, sensor_files))
+    sensor_files = list(filter(preprocess.include_pid, sensor_files))
 
     groupby = GroupBy(
         sensor_files, **MhealthWindowing.make_metas(sensor_files))
@@ -81,8 +84,7 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
     ]
 
     groupby.split(
-        grouper.pid_group(),
-        grouper.sid_group(),
+        *groups,
         ingroup_sortkey_func=sort_func,
         descending=False)
 
@@ -105,10 +107,17 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
         output_folder, 'feature_computation_profiling.html')
     workflow_filepath = os.path.join(
         output_folder, 'feature_computation_workflow.pdf')
-    result.to_csv(output_path, float_format='%.9f', index=True)
+    result.to_csv(feature_filepath, float_format='%.9f', index=True)
     groupby.show_profiling(file_path=profiling_filepath)
     groupby.visualize_workflow(filename=workflow_filepath)
 
 
 if __name__ == '__main__':
-    run(prepare_feature_set)
+    input_folder = 'D:/data/mini_mhealth_dataset'
+    output_folder = os.path.join(
+        input_folder, 'DerivedCrossParticipants', 'location_matters')
+    sampling_rate = 80
+    scheduler = 'processes'
+    prepare_feature_set(input_folder, output_folder,
+                        sampling_rate=sampling_rate, scheduler=scheduler)
+    # run(prepare_feature_set)
