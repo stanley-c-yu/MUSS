@@ -68,8 +68,7 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
                             'location_matters.prepare_feature_set',
                             debug=debug_mode)
 
-    sensor_files = glob(os.path.join(
-        input_folder, '*', 'MasterSynced', '**', 'Actigraph*sensor.csv'), recursive=True)
+    sensor_files = glob(os.path.join(input_folder, '*', 'MasterSynced', '**', 'Actigraph*sensor.csv'), recursive=True)
 
     sensor_files = list(filter(preprocess.include_pid, sensor_files))
 
@@ -113,11 +112,12 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
 
 
 if __name__ == '__main__':
-    input_folder = 'D:/data/mini_mhealth_dataset'
+    input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
     output_folder = os.path.join(
         input_folder, 'DerivedCrossParticipants', 'location_matters')
     sampling_rate = 80
     scheduler = 'processes'
+    print(input_folder)
     prepare_feature_set(input_folder, output_folder,
                         sampling_rate=sampling_rate, scheduler=scheduler)
     # run(prepare_feature_set)
