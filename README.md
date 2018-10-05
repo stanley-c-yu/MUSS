@@ -29,9 +29,10 @@ pipenv shell
 4. Reproduce the feature set
 
 ```python
-
+python prepare_feature_set.py your_dataset_path sampling_rate=80
+python prepare_class_set.py your_dataset_path
 ```
 
-4. Reproduce validation results
+5. Reproduce validation results
 
-5. Reproduce publication figures and tables
+6. Reproduce publication figures and tables

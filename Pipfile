@@ -5,13 +5,15 @@ name = "pypi"
 
 [packages]
 clize = "==4.0.3"
-padar-converter = "==0.2.11"
+padar-converter = "==0.2.12"
 padar-parallel = "==0.2.5"
 padar-features = "==0.2.10"
 graphviz = "*"
+requests = "*"
 
 [dev-packages]
 pylint = "<2.0.0"
+"autopep8" = "*"
 
 [requires]
 python_version = "3"

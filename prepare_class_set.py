@@ -10,7 +10,7 @@ from padar_parallel.windowing import MhealthWindowing
 from padar_parallel.join import join_as_dataframe
 from clize import run
 from dask import delayed
-from helper.annotation_processor import annotation_splitter, class_mapping
+from helper.annotation_processor import annotation_splitter, ClassLabeler
 
 
 def sort_func(item):
@@ -28,7 +28,7 @@ def preprocess_annotations(item, all_items, **kwargs):
     return GroupBy.bundle(loaded_data, **metas)
 
 
-def get_class_map(annotation_files, scheduler='synchronized'):
+def get_class_map(annotation_files, interval, scheduler='synchronized'):
     groupby = GroupBy(
         annotation_files, **MhealthWindowing.make_metas(annotation_files))
 
@@ -49,7 +49,7 @@ def get_class_map(annotation_files, scheduler='synchronized'):
     merged_annotations = groupby.compute(
         scheduler=scheduler).get_result()
     splitted_annotations = annotation_splitter(merged_annotations)
-    class_map = class_mapping(splitted_annotations)
+    class_map = ClassLabeler.from_annotation_set(splitted_annotations, 'C:/Users/tqshe/Projects/python/location_matters/data/location_matters.csv', interval=interval)
     return class_map
 
 def get_class_set(annotation_files, class_map, scheduler='synchronized'):
@@ -66,7 +66,7 @@ def get_class_set(annotation_files, class_map, scheduler='synchronized'):
         *groups,
         ingroup_sortkey_func=sort_func,
         descending=False)
-
+    groupby.apply(preprocess_annotations)
     groupby.apply(convert_annotations, interval=12.8, step=12.8, class_map=class_map)
     groupby.final_join(delayed(join_as_dataframe))
 
@@ -77,8 +77,12 @@ def get_class_set(annotation_files, class_map, scheduler='synchronized'):
 @delayed
 @MhealthWindowing.groupby_windowing('annotation')
 def convert_annotations(df, **kwargs):
-    sadf
-
+    labels = df.iloc[:,3].unique()
+    labels.sort()
+    labels = ' '.join(labels).lower().strip()
+    class_map = kwargs['class_map']
+    matched_classes = class_map.loc[class_map['ANNOTATION_LABELS'] == labels,:]
+    return matched_classes
 
 def prepare_class_set(input_folder, output_folder, debug_mode=True, scheduler='processes'):
     """Compute class set for "Location Matters" paper by Tang et al.
@@ -104,14 +108,13 @@ def prepare_class_set(input_folder, output_folder, debug_mode=True, scheduler='p
     annotation_files = list(filter(preprocess.include_pid, annotation_files))
 
     # get class map
-    class_map = get_class_map(annotation_files, scheduler=scheduler)
+    class_map = get_class_map(annotation_files, interval=12.8, scheduler=scheduler)
     classmap_filepath = os.path.join(
         output_folder, 'location_matters.classmap.csv')
     class_map.to_csv(classmap_filepath, index=True)
 
     class_set = get_class_set(annotation_files, class_map=class_map, scheduler=scheduler)
 
-    
     classset_filepath = os.path.join(
         output_folder, 'location_matters.class.csv')
 
@@ -123,7 +126,8 @@ def prepare_class_set(input_folder, output_folder, debug_mode=True, scheduler='p
     class_set.to_csv(classset_filepath, index=True)
 
 if __name__ == '__main__':
-    input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
+    # input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
+    input_folder = 'D:/data/spades_lab/'
     output_folder = os.path.join(
         input_folder, 'DerivedCrossParticipants', 'location_matters')
     scheduler = 'processes'
