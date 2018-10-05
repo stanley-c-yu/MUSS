@@ -112,7 +112,8 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
 
 
 if __name__ == '__main__':
-    input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
+    # input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/spades_lab')
+    input_folder = 'D:/data/spades_lab'
     output_folder = os.path.join(
         input_folder, 'DerivedCrossParticipants', 'location_matters')
     sampling_rate = 80

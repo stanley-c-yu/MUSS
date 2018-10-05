@@ -93,7 +93,9 @@ class ClassLabeler:
         # matched_primary_class_label_list = get_most_similar_batch(
             # labels_list, self._primary_class_labels.values)
         matched_primary_class_label_list = [to_activity_spadeslab(labels) for labels in labels_list]
-        return pd.concat([self.from_primary_class_label(matched_primary_class_label, label_str) for matched_primary_class_label, label_str in zip(matched_primary_class_label_list, labels_list)])
+        result = pd.concat([self.from_primary_class_label(matched_primary_class_label, label_str.replace('wear on', '').replace('wearon', '').strip()) for matched_primary_class_label, label_str in zip(matched_primary_class_label_list, labels_list)])
+        result = result.drop_duplicates()
+        return result
 
     @staticmethod
     def from_annotation_set(annotations, class_label_set, interval):

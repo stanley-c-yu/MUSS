@@ -4,11 +4,14 @@ import pandas as pd
 
 def to_activity_spadeslab(labels):
     label = labels.lower().strip()
+    label = label.replace('wear on', '').replace('wearon', '').strip()
+    if 'mbta' in label or 'city' in label or 'outdoor' in label:
+        return 'Unknown'
     if "sitting" in label and 'writing' in label:
         return 'Sitting and writing'
     elif 'stand' in label and 'writ' in label:
         return 'Standing and writing at a table'
-    elif 'sit' in label and 'story' in label:
+    elif 'sit' in label and 'story' in label and ('city' not in label and 'outdoor' not in label):
         return "Sitting and talking"
     elif "reclin" in label and 'story' in label:
         return 'Reclining and talking'
@@ -20,21 +23,21 @@ def to_activity_spadeslab(labels):
         return "Standing and typing on a keyboard"
     elif 'bik' in label and ('stationary' in label or '300' in label):
         return "Stationary cycle ergometry"
-    elif 'treadmill' in label and '1' in label:
+    elif ('treadmill' in label or 'walk' in label) and '1' in label:
         return "Level treadmill walking at 1 mph with arms on desk"
-    elif 'treadmill' in label and '2' in label:
+    elif ('treadmill' in label or 'walk' in label) and '2' in label:
         return "Level treadmill walking at 2 mph with arms on desk"
-    elif 'treadmill' in label and 'phone' in label and 'arms' not in label:
+    elif 'treadmill' in label and 'phone' in label:
         return "Level treadmill walking at 3-3.5 mph while holding a phone with dominant arm to the ear and talking"
-    elif 'treadmill' in label and 'bag' in label and 'arms' not in label:
+    elif 'treadmill' in label and 'bag' in label:
         return "Level treadmill walking at 3-3.5 mph and carrying a bag"
-    elif 'treadmill' in label and 'story' in label and 'arms' not in label:
+    elif 'treadmill' in label and 'story' in label:
         return "Level treadmill walking at 3-3.5 mph while talking"
-    elif 'treadmill' in label and 'drink' in label and 'arms' not in label:
+    elif 'treadmill' in label and 'drink' in label:
         return 'Level treadmill walking at 3-3.5 mph and carrying a drink'
-    elif ('treadmill' in label or 'walk' in label) and ('3.5' in label or '3' in label) and 'arms' not in label:
+    elif ('treadmill' in label or 'walk' in label) and ('3.5' in label or '3' in label):
         return 'Level treadmill walking at 3-3.5 mph'
-    elif 'treadmill' in label and '5.5' in label:
+    elif '5.5' in label or 'jog' in label or 'run' in label:
         return 'Treadmill running at 5.5 mph & 5% grade'
     elif 'laundry' in label:
         return 'Standing and folding towels'
@@ -46,7 +49,7 @@ def to_activity_spadeslab(labels):
         return "Lying on the back"
     elif label == 'sitting' or ('sit' in label and 'still' in label):
         return "Sitting still"
-    elif label == "still" or 'standing' == label:
+    elif label == "still" or 'standing' == label or label == 'standing still':
         return "Self-selected free standing"
     else:
         return 'Unknown'

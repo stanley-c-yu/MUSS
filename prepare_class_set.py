@@ -28,7 +28,7 @@ def preprocess_annotations(item, all_items, **kwargs):
     return GroupBy.bundle(loaded_data, **metas)
 
 
-def get_class_map(annotation_files, interval, scheduler='synchronized'):
+def get_class_map(annotation_files, scheduler='synchronized'):
     groupby = GroupBy(
         annotation_files, **MhealthWindowing.make_metas(annotation_files))
 
@@ -49,7 +49,7 @@ def get_class_map(annotation_files, interval, scheduler='synchronized'):
     merged_annotations = groupby.compute(
         scheduler=scheduler).get_result()
     splitted_annotations = annotation_splitter(merged_annotations)
-    class_map = ClassLabeler.from_annotation_set(splitted_annotations, 'C:/Users/tqshe/Projects/python/location_matters/data/location_matters.csv', interval=interval)
+    class_map = ClassLabeler.from_annotation_set(splitted_annotations, 'C:/Users/tqshe/Projects/python/location_matters/data/location_matters.csv', interval=12.8)
     return class_map
 
 def get_class_set(annotation_files, class_map, scheduler='synchronized'):
@@ -67,21 +67,38 @@ def get_class_set(annotation_files, class_map, scheduler='synchronized'):
         ingroup_sortkey_func=sort_func,
         descending=False)
     groupby.apply(preprocess_annotations)
-    groupby.apply(convert_annotations, interval=12.8, step=12.8, class_map=class_map)
+    groupby.apply(convert_annotations, interval=12.8, step=12.8,class_map=class_map)
     groupby.final_join(delayed(join_as_dataframe))
 
     class_set = groupby.compute(
         scheduler=scheduler).get_result()
-    return class_set
+    return (class_set, groupby)
 
 @delayed
 @MhealthWindowing.groupby_windowing('annotation')
 def convert_annotations(df, **kwargs):
+    class_map = kwargs['class_map']
+    interval = kwargs['interval']
+    if df.empty:
+        return class_map.loc[class_map['ANNOTATION_LABELS'] == 'empty',:]
+    df.iloc[:,3] = df.iloc[:,3].str.lower()
+    df = df.loc[(df.iloc[:,3] != 'wear on') | (df.iloc[:,3] != 'wearon'),:]
+    
     labels = df.iloc[:,3].unique()
     labels.sort()
-    labels = ' '.join(labels).lower().strip()
-    class_map = kwargs['class_map']
+    labels = ' '.join(labels).lower().replace('wear on', '').replace('wearon', '').strip()
+
+    # filter if it does not cover the entire 12.8s
+    df_durations = df.groupby(df.columns[3]).apply(lambda rows: np.sum(rows.iloc[:,2] - rows.iloc[:,1]))
+    if not np.all(df_durations.values >= np.timedelta64(int(interval * 0.8 * 1000), 'ms')):
+        matched_classes = class_map.loc[class_map['ANNOTATION_LABELS'] == 'empty',:]
+        matched_classes = pd.DataFrame(data=[[labels] + ['Transition']*4], columns = matched_classes.columns, index=[0])
+        return matched_classes
+    # get labels from class map
     matched_classes = class_map.loc[class_map['ANNOTATION_LABELS'] == labels,:]
+    
+    if matched_classes.empty:
+        matched_classes = pd.DataFrame(data=[[labels] + ['Unknown']*4], columns = matched_classes.columns, index=[0])
     return matched_classes
 
 def prepare_class_set(input_folder, output_folder, debug_mode=True, scheduler='processes'):
@@ -108,12 +125,12 @@ def prepare_class_set(input_folder, output_folder, debug_mode=True, scheduler='p
     annotation_files = list(filter(preprocess.include_pid, annotation_files))
 
     # get class map
-    class_map = get_class_map(annotation_files, interval=12.8, scheduler=scheduler)
+    class_map = get_class_map(annotation_files, scheduler=scheduler)
     classmap_filepath = os.path.join(
         output_folder, 'location_matters.classmap.csv')
-    class_map.to_csv(classmap_filepath, index=True)
+    class_map.to_csv(classmap_filepath, index=False)
 
-    class_set = get_class_set(annotation_files, class_map=class_map, scheduler=scheduler)
+    class_set, groupby = get_class_set(annotation_files, class_map=class_map, scheduler=scheduler)
 
     classset_filepath = os.path.join(
         output_folder, 'location_matters.class.csv')
@@ -124,6 +141,9 @@ def prepare_class_set(input_folder, output_folder, debug_mode=True, scheduler='p
     workflow_filepath = os.path.join(
         output_folder, 'classset_computation_workflow.pdf')
     class_set.to_csv(classset_filepath, index=True)
+    groupby.show_profiling(file_path=profiling_filepath)
+    groupby.visualize_workflow(filename=workflow_filepath)
+    
 
 if __name__ == '__main__':
     # input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
