@@ -2,27 +2,21 @@ import numpy as np
 import os
 from glob import glob
 import pandas as pd
-from helper import log, preprocess
+from helper import log
 from padar_converter.mhealth import dataset, fileio, dataframe
 from padar_parallel.groupby import GroupBy, GroupByWindowing
 from padar_parallel.grouper import MHealthGrouper
 from padar_parallel.windowing import MhealthWindowing
 from padar_parallel.join import join_as_dataframe
+from padar_parallel.sort import sort_by_file_timestamp
 from padar_features.feature_extractor import FeatureExtractor
 from padar_features.feature_set import FeatureSet
 from padar_features.transformations.accelerometer import orientation
+from padar_features.libs.data_formatting.decorator import apply_on_accelerometer_dataframe
 from clize import run
 from dask import delayed
+from functools import partial
 
-
-def sort_func(item):
-    return dataset.get_file_timestamp(GroupBy.get_data(item))
-
-
-def flip_and_swap_df(df, x_flip, y_flip, z_flip):
-    df.iloc[:,1:] = orientation.flip_and_swap(
-        df.values[:, 1:], x_flip=x_flip, y_flip=y_flip, z_flip=z_flip)
-    return df
 
 def preprocess_data(item, all_items, **kwargs):
     # get session boundaries
@@ -32,14 +26,17 @@ def preprocess_data(item, all_items, **kwargs):
     data_loader = delayed(fileio.load_sensor)
     loaded_data = data_loader(GroupBy.get_data(item))
     # apply offset mapping
-    offset_in_secs = delayed(preprocess.get_offset)(GroupBy.get_data(item))
+    get_offset = partial(dataset.get_offset, offset_column=1)
+    offset_in_secs = delayed(get_offset)(GroupBy.get_data(item))
     offset_data = delayed(dataframe.offset)(loaded_data, offset_in_secs)
 
     # apply orientation corrections
     orientation_correction = delayed(
-        preprocess.get_orientation_correction)(GroupBy.get_data(item))
+        dataset.get_orientation_correction)(GroupBy.get_data(item))
 
-    corrected_data = delayed(flip_and_swap_df)(
+    flip_and_swap = apply_on_accelerometer_dataframe(orientation.flip_and_swap)
+
+    corrected_data = delayed(flip_and_swap)(
         offset_data, x_flip=orientation_correction[0], y_flip=orientation_correction[1], z_flip=orientation_correction[2])
 
     return GroupBy.bundle(corrected_data, **metas)
@@ -68,9 +65,10 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
                             'location_matters.prepare_feature_set',
                             debug=debug_mode)
 
-    sensor_files = glob(os.path.join(input_folder, '*', 'MasterSynced', '**', 'Actigraph*sensor.csv'), recursive=True)
+    sensor_files = glob(os.path.join(
+        input_folder, '*', 'MasterSynced', '**', 'Actigraph*sensor.csv'), recursive=True)
 
-    sensor_files = list(filter(preprocess.include_pid, sensor_files))
+    sensor_files = list(filter(dataset.is_pid_included, sensor_files))
 
     groupby = GroupBy(
         sensor_files, **MhealthWindowing.make_metas(sensor_files))
@@ -84,7 +82,7 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
 
     groupby.split(
         *groups,
-        ingroup_sortkey_func=sort_func,
+        ingroup_sortkey_func=sort_by_file_timestamp,
         descending=False)
 
     groupby.apply(preprocess_data)
@@ -113,12 +111,12 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
 
 if __name__ == '__main__':
     # input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/spades_lab')
-    input_folder = 'D:/data/spades_lab'
-    output_folder = os.path.join(
-        input_folder, 'DerivedCrossParticipants', 'location_matters')
-    sampling_rate = 80
-    scheduler = 'processes'
-    print(input_folder)
-    prepare_feature_set(input_folder, output_folder,
-                        sampling_rate=sampling_rate, scheduler=scheduler)
-    # run(prepare_feature_set)
+    # input_folder = 'D:/data/mini_mhealth_dataset'
+    # output_folder = os.path.join(
+    #     input_folder, 'DerivedCrossParticipants', 'location_matters')
+    # sampling_rate = 80
+    # scheduler = 'processes'
+    # print(input_folder)
+    # prepare_feature_set(input_folder, output_folder,
+    #                     sampling_rate=sampling_rate, scheduler=scheduler)
+    run(prepare_feature_set)

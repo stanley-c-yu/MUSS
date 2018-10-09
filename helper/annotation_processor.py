@@ -7,58 +7,7 @@ Created on Thu Jun 14 11:03:13 2018
 """
 
 import pandas as pd
-import sys
-import os.path
-import re
-import collections
-from .semantic_similarity import get_most_similar, get_most_similar_batch
-from .spadeslab_class_labeler import to_activity_spadeslab
-
-
-def annotation_splitter(in_annotation):
-    '''
-    Combine overlapped labels and split them according to time
-
-    :param pandas.DataFrame in_annotation: the raw annotation to split
-    '''
-
-    time_list = []
-    # iterate through the annotation data, put (start time/end time, label name
-    # start/end, index) to a list
-    for index, series in in_annotation.iterrows():
-        time_list.append((pd.to_datetime(series[1]),
-                          series[3], 'start', index))
-        time_list.append((pd.to_datetime(series[2]),
-                          series[3], 'end', index))
-    time_list.sort(key=lambda tup: tup[0])  # sort the list according to time
-
-    # iterate through the time list, detect overlap. If exist, split and concatenate them
-    curr_activities = []
-    splitted_time_list = []
-    last_time = time_list[0][0]
-
-    for time_record in time_list:
-        curr_time = time_record[0]
-        if curr_time == last_time and time_record[2] == 'start':
-            curr_activities.append(time_record[1].lower().strip())
-        else:
-            if len(curr_activities) > 0 and last_time != curr_time:
-                curr_activities.sort()
-                new_label = ' '.join(curr_activities)
-                splitted_time_list.append(pd.Series([last_time, last_time, curr_time, new_label],
-                                                    index=['HEADER_TIME_STAMP', 'START_TIME', 'STOP_TIME', 'LABEL_NAME']))
-            if time_record[2] == 'start':
-                curr_activities.append(time_record[1].lower().strip())
-            else:
-                curr_activities.remove(time_record[1].lower().strip())
-
-            last_time = curr_time
-
-    # sort by start time, export to dataframe
-    splitted_time_list.sort(key=lambda series: series['START_TIME'])
-    splitted_annotation = pd.DataFrame(splitted_time_list)
-
-    return splitted_annotation
+from padar_converter.dataset import spades
 
 
 class ClassLabeler:
@@ -78,9 +27,8 @@ class ClassLabeler:
     def from_annotation_labels(self, labels):
         print("Getting class labels for: " + labels)
         label_str = labels
-        # matched_primary_class_label = get_most_similar(
-            # label_str, self._primary_class_labels.values)
-        matched_primary_class_label = to_activity_spadeslab(label_str)
+        matched_primary_class_label = spades.to_inlab_activity_labels(
+            label_str)
         return self.from_primary_class_label(matched_primary_class_label, label_str)
 
     def from_primary_class_label(self, primary_class_label, label_str):
@@ -90,10 +38,10 @@ class ClassLabeler:
         return matched_class_labels
 
     def from_annotation_labels_list(self, labels_list):
-        # matched_primary_class_label_list = get_most_similar_batch(
-            # labels_list, self._primary_class_labels.values)
-        matched_primary_class_label_list = [to_activity_spadeslab(labels) for labels in labels_list]
-        result = pd.concat([self.from_primary_class_label(matched_primary_class_label, label_str.replace('wear on', '').replace('wearon', '').strip()) for matched_primary_class_label, label_str in zip(matched_primary_class_label_list, labels_list)])
+        matched_primary_class_label_list = [
+            spades.to_inlab_activity_labels(labels) for labels in labels_list]
+        result = pd.concat([self.from_primary_class_label(matched_primary_class_label, label_str.lower().replace('wear on', '').replace(
+            'wearon', '').strip()) for matched_primary_class_label, label_str in zip(matched_primary_class_label_list, labels_list)])
         result = result.drop_duplicates()
         return result
 
@@ -102,6 +50,7 @@ class ClassLabeler:
         durations = annotations.iloc[:, 2] - annotations.iloc[:, 1]
         valid_annotations = annotations.loc[durations > pd.Timedelta(
             interval, unit='s'), :]
+        valid_annotations = valid_annotations.dropna()
         print('in total annotations: ' + str(valid_annotations.shape[0]))
         class_labeler = ClassLabeler(class_label_set=class_label_set)
         annotation_set = valid_annotations.iloc[:, 3].unique()
