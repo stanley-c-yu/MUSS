@@ -161,4 +161,4 @@ if __name__ == '__main__':
     # scheduler = 'processes'
     # print(input_folder)
     # prepare_class_set(input_folder, output_folder, scheduler=scheduler)
-    run(prepare_feature_set)
+    run(prepare_class_set)

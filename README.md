@@ -19,19 +19,31 @@ TBA
 
 2. Install all dependencies and activate the shell to run the scripts
 
-```python
-pipenv install
-pipenv shell
-```
+    ```python
+    pipenv install
+    pipenv shell
+    ```
 
-3. Download original dataset and unzip to a directory
+    If you are updating from a previous existing codes, run 
 
-4. Reproduce the feature set
+    ```python
+    pipenv update
+    ```
 
-```python
-python prepare_feature_set.py your_dataset_path sampling_rate=80
-python prepare_class_set.py your_dataset_path
-```
+3. Download original dataset and unzip to a directory `your/path/to/dataset`
+
+4. Reproduce the feature set and prepare the class labels
+
+    ```bash
+    python prepare_feature_set.py your/path/to/dataset your/path/to/output/results sampling-rate=80 scheduler=processes
+    python prepare_class_set.py your/path/to/dataset your/path/to/output/results sampling-rate=80 scheduler=processes
+    ```
+
+    Run following command for help information.
+    ```bash
+    python prepare_feature_set --help
+    python prepare_class_set --help
+    ```
 
 5. Reproduce validation results
 
