@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "91e1344de84543adb121c017190b6d2236f70fe6dff02e612f8fe79aa0c34d7b"
+            "sha256": "1006521b4155d393df9f7887266b54df46d34ca1c4f3e75531386d47cb6dabad"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -60,10 +60,10 @@
         },
         "cloudpickle": {
             "hashes": [
-                "sha256:2bff291af542a8121e8d0d7d156447894f253ec8a51def86292727cd0b241ab0",
-                "sha256:ccb49a4139e2a86f0c6194ebcf6e69b2410f60bdac5c702dbcf553c3a5c129d8"
+                "sha256:f169a8523a40eb0a3452e1878aac31da6759409fbafa51dd50d89d4a6b42bcf1",
+                "sha256:fac8deaad55cd9e6cc11bb1d61c66da730f3f602ea8433698ef10ce664e520ec"
             ],
-            "version": "==0.6.0"
+            "version": "==0.6.1"
         },
         "dask": {
             "hashes": [
@@ -202,11 +202,11 @@
         },
         "padar-converter": {
             "hashes": [
-                "sha256:5c5c43b2d175c3363f9daba09a2770820f93a7d23ae48d1cfc2d157d87817ef0",
-                "sha256:d9507cb5b6dca90a732b786c6aa0da89d909642332f9e9207a898f563d44e6fa"
+                "sha256:8a17ef016b85cab4e04bf49e8f48ed47f5202e0b3ade4fca7fd0c8530da6cda4",
+                "sha256:feea4fc5532bca9eb81bdc402eb9f0b882ea758b31e4b342abd86717b95da87b"
             ],
             "index": "pypi",
-            "version": "==0.2.14"
+            "version": "==0.2.15"
         },
         "padar-features": {
             "hashes": [
@@ -426,11 +426,11 @@
         },
         "colorama": {
             "hashes": [
-                "sha256:463f8483208e921368c9f306094eb6f725c6ca42b0f97e313cb5d5512459feda",
-                "sha256:48eb22f4f8461b1df5734a074b57042430fb06e1d61bd1e11b078c0fe6d7a1f1"
+                "sha256:a3d89af5db9e9806a779a50296b5fdb466e281147c2c235e8225ecc6dbf7bbf3",
+                "sha256:c9b54bebe91a6a803e0772c8561d53f2926bfeb17cd141fbabcb08424086595c"
             ],
             "markers": "sys_platform == 'win32'",
-            "version": "==0.3.9"
+            "version": "==0.4.0"
         },
         "isort": {
             "hashes": [
