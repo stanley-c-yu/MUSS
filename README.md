@@ -47,4 +47,15 @@ TBA
 
 5. Reproduce validation results
 
+    The first step is to prepare validation sets (for LOSO validation) for different sensor combinations
+    ```bash
+    python prepare_validation_set.py your/path/to/output/results
+    ```
+    The script will generate files for each sensor combinations and store them separately in `your/path/to/output/results/validation_sets/` folder.
+
+
+    The second step is to run LOSO validation on each of the validation sets to generate the classification results.
+
+    TBA.
+
 6. Reproduce publication figures and tables
