@@ -64,6 +64,7 @@ def get_class_set(annotation_files, class_map, scheduler='synchronous'):
 
     groupby.split(
         *groups,
+        group_types=['PID', 'ANNOTATOR'],
         ingroup_sortkey_func=sort_by_file_timestamp,
         descending=False)
     groupby.apply(preprocess_annotations)
@@ -154,11 +155,12 @@ def prepare_class_set(input_folder, output_folder, debug_mode=True, scheduler='p
 
 
 if __name__ == '__main__':
-    # input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
-    # input_folder = 'D:/data/mini_mhealth_dataset/'
-    # output_folder = os.path.join(
-    #     input_folder, 'DerivedCrossParticipants', 'location_matters')
-    # scheduler = 'processes'
-    # print(input_folder)
-    # prepare_class_set(input_folder, output_folder, scheduler=scheduler)
-    run(prepare_class_set)
+    input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
+    input_folder = 'D:/data/mini_mhealth_dataset/'
+    input_folder = 'D:/data/spades_lab/'
+    output_folder = os.path.join(
+        input_folder, 'DerivedCrossParticipants', 'location_matters')
+    scheduler = 'processes'
+    print(input_folder)
+    prepare_class_set(input_folder, output_folder, scheduler=scheduler)
+    # run(prepare_class_set)

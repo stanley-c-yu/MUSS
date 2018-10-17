@@ -5,8 +5,8 @@ name = "pypi"
 
 [packages]
 clize = "==4.0.3"
-padar-converter = "==0.2.15"
-padar-parallel = "==0.2.7"
+padar-converter = "==0.2.16"
+padar-parallel = "==0.2.10"
 padar-features = "==0.2.11"
 graphviz = "*"
 requests = "*"

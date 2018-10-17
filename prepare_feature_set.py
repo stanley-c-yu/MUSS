@@ -82,6 +82,7 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
 
     groupby.split(
         *groups,
+        group_types=['PID', 'SID', 'SENSOR_PLACEMENT'],
         ingroup_sortkey_func=sort_by_file_timestamp,
         descending=False)
 
@@ -95,6 +96,11 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
     result = groupby.compute(
         scheduler=scheduler).get_result()
 
+    # rename placements
+    result = result.reset_index()
+    result.loc[:, 'SENSOR_PLACEMENT'] = result.loc[:,
+                                                   'SENSOR_PLACEMENT'].apply(dataset.get_placement_abbr)
+
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
@@ -104,19 +110,21 @@ def prepare_feature_set(input_folder, output_folder, debug_mode=True, sampling_r
         output_folder, 'feature_computation_profiling.html')
     workflow_filepath = os.path.join(
         output_folder, 'feature_computation_workflow.pdf')
-    result.to_csv(feature_filepath, float_format='%.9f', index=True)
+    result.to_csv(feature_filepath, float_format='%.9f', index=False)
     groupby.show_profiling(file_path=profiling_filepath)
     groupby.visualize_workflow(filename=workflow_filepath)
 
 
 if __name__ == '__main__':
-    # input_folder = os.path.join(os.path.expanduser('~'), 'Projects/data/spades_lab')
-    # input_folder = 'D:/data/mini_mhealth_dataset'
-    # output_folder = os.path.join(
-    #     input_folder, 'DerivedCrossParticipants', 'location_matters')
-    # sampling_rate = 80
-    # scheduler = 'processes'
-    # print(input_folder)
-    # prepare_feature_set(input_folder, output_folder,
-    #                     sampling_rate=sampling_rate, scheduler=scheduler)
-    run(prepare_feature_set)
+    input_folder = os.path.join(
+        os.path.expanduser('~'), 'Projects/data/spades_lab')
+    input_folder = 'D:/data/mini_mhealth_dataset'
+    input_folder = 'D:/data/spades_lab'
+    output_folder = os.path.join(
+        input_folder, 'DerivedCrossParticipants', 'location_matters')
+    sampling_rate = 80
+    scheduler = 'processes'
+    print(input_folder)
+    prepare_feature_set(input_folder, output_folder,
+                        sampling_rate=sampling_rate, scheduler=scheduler)
+    # run(prepare_feature_set)
