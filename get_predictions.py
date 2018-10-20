@@ -62,15 +62,17 @@ def append_prediction(validation_set, predictions):
 
 @delayed
 def run_loso(validation_set, target):
-    index_cols = ["START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT", "ANNOTATOR",
+    index_cols = ["START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT", "FEATURE_TYPE", "ANNOTATOR",
                   "ANNOTATION_LABELS", "ACTIVITY", "POSTURE", "ACTIVITY_GROUP", "SEDENTARY_AMBULATION_CYCLING"]
     placements = validation_set['SENSOR_PLACEMENT'].values[0]
+    feature_type = validation_set['FEATURE_TYPE'].values[0]
     y = validation_set[target].values
     indexed_validation_set = validation_set.set_index(index_cols)
     X = indexed_validation_set.values
     groups = validation_set['PID'].values
     y_pred, metric = loso_validation(X, y, groups=groups)
-    print(placements + "'F1-score for " + target + ' is: ' + str(metric))
+    print(placements + "'F1-score, using " + feature_type +
+          " features for " + target + ' is: ' + str(metric))
     return y_pred
 
 
