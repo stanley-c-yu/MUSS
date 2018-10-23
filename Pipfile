@@ -10,6 +10,8 @@ padar-parallel = "==0.2.10"
 padar-features = "==0.2.12"
 graphviz = "*"
 requests = "*"
+matplotlib = "==3.0.0"
+seaborn = "==0.9.0"
 
 [dev-packages]
 pylint = "<2.0.0"
