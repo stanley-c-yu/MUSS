@@ -5,11 +5,67 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import matplotlib.gridspec as gridspec
 import seaborn as sns
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl import Workbook
+from openpyxl.styles import Font, Border, Side, PatternFill
+from openpyxl.formatting.rule import FormulaRule
+from openpyxl.utils import get_column_letter
+
+
+def format_for_excel(df, highlight_header=True):
+    df = df.round(3)
+    wb = Workbook()
+    ws = wb.active
+    font_style = Font(name='Times New Roman', size=12)
+    redFill = PatternFill(start_color='EE1111',
+                          end_color='EE1111',
+                          fill_type='solid')
+    greenFill = PatternFill(start_color='11EE11',
+                            end_color='11EE11',
+                            fill_type='solid')
+    for row in dataframe_to_rows(df, index=False, header=True):
+        ws.append(row)
+
+    # whole sheet style
+    for row in ws.iter_rows():
+        for cell in row:
+            cell.font = font_style
+            # first row
+            if cell.row == 1:
+                cell.font = cell.font + Font(bold=True)
+                cell.border = Border(
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+                if cell.column == 'A':
+                    cell.border = Border(
+                        left=Side(style='thin'),
+                        right=Side(style='thin'),
+                        top=Side(style='thin'),
+                        bottom=Side(style='thin')
+                    )
+            # first column
+            elif cell.column == 'A':
+                cell.border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin')
+                )
+
+    for col in range(2, ws.max_column + 1):
+        col_letter = get_column_letter(col)
+        ws.conditional_formatting.add(col_letter + '2:' + col_letter + str(ws.max_row), FormulaRule(
+            formula=[col_letter + '2>=LARGE($' + col_letter + '$2:$' + col_letter + '$' + str(ws.max_row) + ',5)'], fill=redFill))
+        ws.conditional_formatting.add(col_letter + '2:' + col_letter + str(ws.max_row), FormulaRule(
+            formula=[col_letter + '2<=SMALL($' + col_letter + '$2:$' + col_letter + '$' + str(ws.max_row) + ',5)'], fill=greenFill))
+
+    return wb
 
 
 def table_3(summary_file):
     output_filepath = summary_file.replace(
         'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table3.csv')
+    output_filepath_excel = summary_file.replace(
+        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table3.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
     summary = pd.read_csv(summary_file)
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
@@ -21,7 +77,9 @@ def table_3(summary_file):
     table3_data = table3_data.sort_values(by=['Average'], ascending=False)
     table3_data.loc[:, 'Sensor placements'] = table3_data['Sensor placements'].transform(
         lambda s: s.replace('_', ' and '))
+    table3_wb = format_for_excel(table3_data)
     table3_data.to_csv(output_filepath, float_format='%.2f', index=False)
+    table3_wb.save(output_filepath_excel)
 
 
 def table_4(summary_file):
@@ -108,7 +166,7 @@ def figure_1(summary_file):
                       ax=axes[index][0], marker='o', jitter=True, color='white', linewidth=1)
         sns.pointplot(x='Number of sensors', y='F1-score', data=line_data_mo,
                       dodge=True, ax=axes[index][0], color='black', markers='x')
-        
+
         if task == 'Posture':
             axes[index][0].annotate('Motion + orientation related features', xy=(4.5, 0.95), xycoords='data', xytext=[2.5, 0.7],
                                     textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='black'), horizontalalignment='left')
@@ -125,12 +183,12 @@ def figure_1(summary_file):
                                     textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='dimgrey'), horizontalalignment='center', color='dimgrey')
 
         # draw line for other feature set
-        
+
         line_data_others = line_plot_data.loc[line_plot_data['Feature set'] != 'Motion + orientation related features', [
             'Number of sensors', 'Feature set', task]].rename(columns={task: 'F1-score'})
         sns.pointplot(x='Number of sensors', y='F1-score', data=line_data_others,
                       dodge=True, ax=axes[index][1], hue='Feature set', color='black', linestyles=['-', '-.'], markers='x')
-        
+
         if task == 'Posture':
             axes[index][1].annotate('Motion features only', xy=(4.3, 0.75), xycoords='data', xytext=[4.5, 0.6],
                                     textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='black'), horizontalalignment='center')
@@ -150,8 +208,10 @@ def figure_1(summary_file):
         axes[index][1].spines['left'].set_color('grey')
 
     g.subplots_adjust(wspace=0, hspace=0.35)
-    plt.figtext(0.5, 0.5, '(a) Posture recognition performances', ha='center', va='top')
-    plt.figtext(0.5, 0.06, '(b) PA recognition performances', ha='center', va='top')
+    plt.figtext(0.5, 0.5, '(a) Posture recognition performances',
+                ha='center', va='top')
+    plt.figtext(0.5, 0.06, '(b) PA recognition performances',
+                ha='center', va='top')
     # save figure in different formats
     for output_filepath in output_filepaths:
         plt.savefig(output_filepath, dpi=300, orientation='landscape')
@@ -161,6 +221,6 @@ if __name__ == '__main__':
     dataset_folder = 'D:/data/spades_lab/'
     summary_file = os.path.join(
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'summary.csv')
-    # table_3(summary_file)
+    table_3(summary_file)
     # table_4(summary_file)
-    figure_1(summary_file)
+    # figure_1(summary_file)
