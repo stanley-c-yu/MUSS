@@ -71,12 +71,12 @@ def table_3(summary_file):
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] == 2)
     table3_data = summary.loc[filter_condition, [
-        'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'Lying', 'Sitting', 'Upright']]
+        'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']]
     table3_data.columns = ['Sensor placements',
                            'Average', 'Lying', 'Sitting', 'Upright']
     table3_data = table3_data.sort_values(by=['Average'], ascending=False)
     table3_data.loc[:, 'Sensor placements'] = table3_data['Sensor placements'].transform(
-        lambda s: s.replace('_', ' and '))
+        lambda s: s.replace('_', ', '))
     table3_wb = format_for_excel(table3_data)
     table3_data.to_csv(output_filepath, float_format='%.2f', index=False)
     table3_wb.save(output_filepath_excel)
@@ -85,18 +85,26 @@ def table_3(summary_file):
 def table_4(summary_file):
     output_filepath = summary_file.replace(
         'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table4.csv')
+    output_filepath_excel = summary_file.replace(
+        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table4.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
     summary = pd.read_csv(summary_file)
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] == 2)
     table4_data = summary.loc[filter_condition, [
-        'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'Between activity groups', 'Within activity groups']]
+        'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']]
     table4_data.columns = ['Sensor placements',
                            'Average', 'Between activity groups', 'Within activity groups']
     table4_data = table4_data.sort_values(by=['Average'], ascending=False)
     table4_data.loc[:, 'Sensor placements'] = table4_data['Sensor placements'].transform(
-        lambda s: s.replace('_', ' and '))
+        lambda s: s.replace('_', ', '))
+    table4_wb = format_for_excel(table4_data)
     table4_data.to_csv(output_filepath, float_format='%.2f', index=False)
+    table4_wb.save(output_filepath_excel)
+
+
+def table_5(summary_file):
+    
 
 
 def figure_1(summary_file):
@@ -222,5 +230,5 @@ if __name__ == '__main__':
     summary_file = os.path.join(
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'summary.csv')
     table_3(summary_file)
-    # table_4(summary_file)
-    # figure_1(summary_file)
+    table_4(summary_file)
+    figure_1(summary_file)
