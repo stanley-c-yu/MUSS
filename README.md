@@ -59,3 +59,7 @@ TBA
     TBA.
 
 6. Reproduce publication figures and tables
+
+    ```bash
+    python publication_figures.py
+    ```
