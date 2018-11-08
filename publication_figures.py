@@ -103,10 +103,6 @@ def table_4(summary_file):
     table4_wb.save(output_filepath_excel)
 
 
-def table_5(summary_file):
-    
-
-
 def figure_1(summary_file):
     rcParams['font.family'] = 'serif'
     rcParams['font.size'] = 12
@@ -143,6 +139,7 @@ def figure_1(summary_file):
         lambda s: 'DW' in s.split('_'))
     point_plot_data['Include nondominant wrist'] = point_plot_data['Sensor placements'].transform(
         lambda s: 'NDW' in s.split('_'))
+    point_plot_data['Include wrists'] = point_plot_data['Include dominant wrist'] | point_plot_data['Include nondominant wrist']
 
     point_plot_data = point_plot_data.sort_values(
         by=['Number of sensors', 'Classification task', 'F1-score'], ascending=True)
@@ -152,62 +149,46 @@ def figure_1(summary_file):
     point_plot_data = point_plot_data.reset_index(drop=True).drop_duplicates()
 
     # draw plots
-    g, axes = plt.subplots(2, 2, figsize=(12, 8))
+    g, axes = plt.subplots(2, 2, figsize=(8, 8))
+    sns.set_context("paper")
     for task, index in zip(['Posture', 'PA'], [0, 1]):
+        sns.set(rc={"lines.linewidth": 0.8,
+                "font.family": ['serif'],
+                "font.serif": ['Times New Roman'],
+                "font.size": 12
+                })
         # draw swarm and line for MO feature set
         axes[index][0].set_ylim(0, 1.2)
+        axes[index][0].set_xlim(0, 7)
         axes[index][0].yaxis.grid(linestyle='--')
         swarm_data = point_plot_data.loc[point_plot_data['Classification task'] == task, :]
         if task == 'Posture':
-            swarm_data_wrist = swarm_data.loc[(swarm_data['Include dominant wrist'] == True) | (
-                swarm_data['Include nondominant wrist'] == True), :]
-            swarm_data_nonwrist = swarm_data.loc[(swarm_data['Include dominant wrist'] == False) & (
-                swarm_data['Include nondominant wrist'] == False), :]
+            swarm_data_wrist = swarm_data.loc[swarm_data['Include wrists'] == True, :]
+            swarm_data_nonwrist = swarm_data.loc[swarm_data['Include wrists'] == False, :]
         else:
             swarm_data_wrist = swarm_data.loc[swarm_data['Include dominant wrist'] == True, :]
             swarm_data_nonwrist = swarm_data.loc[swarm_data['Include dominant wrist'] == False, :]
         line_data_mo = line_plot_data.loc[line_plot_data['Feature set'] == 'Motion + orientation related features', [
             'Number of sensors', 'Feature set', task]].rename(columns={task: 'F1-score'})
-        sns.stripplot(x='Number of sensors', y='F1-score', data=swarm_data_wrist,
-                      ax=axes[index][0], marker='o', jitter=True, color='dimgrey')
-        sns.stripplot(x='Number of sensors', y='F1-score', data=swarm_data_nonwrist,
-                      ax=axes[index][0], marker='o', jitter=True, color='white', linewidth=1)
-        sns.pointplot(x='Number of sensors', y='F1-score', data=line_data_mo,
-                      dodge=True, ax=axes[index][0], color='black', markers='x')
-
+        for x in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5]:
+            axes[index][0].axvline(x=x, color='0.75')
+        sns.swarmplot(x = 'Number of sensors', y = 'F1-score', data=swarm_data, ax=axes[index][0], linewidth=1, hue='Include wrists', palette='Greys', size=4)
+        sns.pointplot(x='Number of sensors', y='F1-score',
+                      data=line_data_mo, ax=axes[index][0], color='gray', marker='x', capsize=0.1, errwidth=0, hue='Feature set')
+        legend_handles = axes[index][0].legend_.legendHandles
+        legend_handles[2] = axes[index][0].lines[7]
         if task == 'Posture':
-            axes[index][0].annotate('Motion + orientation related features', xy=(4.5, 0.95), xycoords='data', xytext=[2.5, 0.7],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='black'), horizontalalignment='left')
-            axes[index][0].annotate('"o": Non-wrist sensors', xy=(0.05, 0.93), xycoords='data', xytext=[0.15, 1.1],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='dimgrey'), horizontalalignment='left', color='dimgrey')
-            axes[index][0].annotate('"●": Including wrist sensors', xy=(0.05, 0.58), xycoords='data', xytext=[0.2, 0.4],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='dimgrey'), horizontalalignment='left', color='dimgrey')
+            axes[index][0].legend(handles=legend_handles, labels=["Models include W sensors", "Models not include W sensors", "M + O features"], frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
         else:
-            axes[index][0].annotate('Motion + orientation related features', xy=[4.5, 0.7], xycoords='data', xytext=(
-                2.5, 0.95), textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='black'), horizontalalignment='left')
-            axes[index][0].annotate('"●": Including dominant wrist sensor', xy=(1, 0.7), xycoords='data', xytext=[1.6, 0.8],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='dimgrey'), horizontalalignment='center', color='dimgrey')
-            axes[index][0].annotate('"o": Not including dominant wrist sensor', xy=(1.2, 0.4), xycoords='data', xytext=[1.8, 0.25],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='dimgrey'), horizontalalignment='center', color='dimgrey')
+            axes[index][0].legend(handles=legend_handles, labels=["Models include DW sensors", "Models not include DW sensors", "M + O features"], frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
 
         # draw line for other feature set
 
         line_data_others = line_plot_data.loc[line_plot_data['Feature set'] != 'Motion + orientation related features', [
             'Number of sensors', 'Feature set', task]].rename(columns={task: 'F1-score'})
         sns.pointplot(x='Number of sensors', y='F1-score', data=line_data_others,
-                      dodge=True, ax=axes[index][1], hue='Feature set', color='black', linestyles=['-', '-.'], markers='x')
-
-        if task == 'Posture':
-            axes[index][1].annotate('Motion features only', xy=(4.3, 0.75), xycoords='data', xytext=[4.5, 0.6],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='black'), horizontalalignment='center')
-            axes[index][1].annotate('Orientation related features only', xy=(4.5, 1), xycoords='data', xytext=[4.5, 1.1],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='black'), horizontalalignment='center', color='black')
-        else:
-            axes[index][1].annotate('Motion features only', xy=(4.3, 0.6), xycoords='data', xytext=[4.5, 0.75],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='black'), horizontalalignment='center')
-            axes[index][1].annotate('Orientation related features only', xy=(4.5, 0.45), xycoords='data', xytext=[4.5, 0.25],
-                                    textcoords='data', arrowprops=dict(arrowstyle='->', connectionstyle="arc3", facecolor='black'), horizontalalignment='center', color='black')
-        axes[index][1].legend().remove()
+                      dodge=True, ax=axes[index][1], hue='Feature set', palette='Greys', linestyles=['--', '-.'], markers='x', errwidth=0)
+        axes[index][1].legend(handles=[axes[index][1].lines[0], axes[index][1].lines[8]], labels=["M features","O features"], frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
         axes[index][1].set_ylim(0, 1.2)
         axes[index][1].set_yticklabels([])
         axes[index][1].yaxis.set_major_formatter(plt.NullFormatter())
@@ -216,10 +197,11 @@ def figure_1(summary_file):
         axes[index][1].spines['left'].set_color('grey')
 
     g.subplots_adjust(wspace=0, hspace=0.35)
-    plt.figtext(0.5, 0.5, '(a) Posture recognition performances',
+    plt.figtext(0.5, 0.49, '(a) Posture recognition performances',
                 ha='center', va='top')
-    plt.figtext(0.5, 0.06, '(b) PA recognition performances',
+    plt.figtext(0.5, 0.05, '(b) PA recognition performances',
                 ha='center', va='top')
+    # plt.show()
     # save figure in different formats
     for output_filepath in output_filepaths:
         plt.savefig(output_filepath, dpi=300, orientation='landscape')
@@ -229,6 +211,6 @@ if __name__ == '__main__':
     dataset_folder = 'D:/data/spades_lab/'
     summary_file = os.path.join(
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'summary.csv')
-    table_3(summary_file)
-    table_4(summary_file)
+    # table_3(summary_file)
+    # table_4(summary_file)
     figure_1(summary_file)
