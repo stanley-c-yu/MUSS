@@ -2,7 +2,7 @@ import os
 from glob import glob
 import pandas as pd
 from dask import delayed
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix
 import numpy as np
 from functools import reduce
 from padar_parallel.for_loop import ForLoop
@@ -15,6 +15,22 @@ def pa_to_activity_group(prediction_set):
         mapping)
     labels = list(set(mapping.values()))
     return prediction_set, labels
+
+
+def get_pa_labels(dataset_folder):
+    filepath = os.path.join(dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'location_matters.csv')
+    label_mapping = pd.read_csv(filepath)
+    labels = label_mapping['ACTIVITY'].values.tolist()
+    labels.remove('Unknown')
+    labels.remove('Transition')
+    return labels
+
+def pa_confusion_matrix(prediction_set, labels):
+    y_true = prediction_set['ACTIVITY']
+    y_pred = prediction_set['ACTIVITY_PREDICTION'] 
+    conf_mat = confusion_matrix(y_true, y_pred, labels)
+    conf_df = pd.DataFrame(conf_mat, columns = labels, index=labels)
+    return conf_df
 
 
 def pa_metric(prediction_set):
@@ -56,14 +72,21 @@ def posture_metric(prediction_set):
     return(report)
 
 
-def summarize_prediction_set_file(prediction_set_file, targets):
+def summarize_prediction_set_file(prediction_set_file, targets, dataset_folder):
     prediction_set = delayed(pd.read_csv)(
         prediction_set_file, parse_dates=[0, 1], infer_datetime_format=True)
-    return summarize_prediction_set(prediction_set, targets)
+    pa_labels = delayed(get_pa_labels)(dataset_folder)
+    result = summarize_prediction_set(prediction_set, targets, pa_labels, prediction_set_file)
+    
+    return result
 
+def save_confusion_matrix(prediction_set_file, conf):
+    output_filepath = prediction_set_file.replace('prediction_sets', 'confusion_matrices').replace('.prediction.csv', '.pa_confusion_matrix.csv')
+    os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+    conf.to_csv(output_filepath, index=True, float_format='%.3f')
 
 @delayed
-def summarize_prediction_set(prediction_set, targets):
+def summarize_prediction_set(prediction_set, targets, pa_labels, prediction_set_file):
     metrics = []
     placements = prediction_set['SENSOR_PLACEMENT'].values[0]
     feature_type = prediction_set['FEATURE_TYPE'].values[0]
@@ -73,6 +96,9 @@ def summarize_prediction_set(prediction_set, targets):
             report = posture_metric(prediction_set)
         elif target == 'ACTIVITY':
             report = pa_metric(prediction_set)
+            conf_df = pa_confusion_matrix(prediction_set, pa_labels)
+            save_confusion_matrix(prediction_set_file, conf_df)
+            print('saved confusion matrix: ' + placements + ' ' + feature_type)
         report.insert(0, 'SENSOR_PLACEMENT', placements)
         report.insert(1, 'NUM_OF_SENSORS', num_of_sensors)
         report.insert(2, 'FEATURE_TYPE', feature_type)
@@ -80,13 +106,12 @@ def summarize_prediction_set(prediction_set, targets):
     print('processed ' + placements + ' ' + feature_type)
     return reduce(pd.merge, metrics)
 
-
-def summarize_predictions(prediction_set_folder):
+def summarize_predictions(prediction_set_folder, dataset_folder):
     prediction_set_files = glob(os.path.join(
         prediction_set_folder, '*.prediction.csv'))
     targets = ['POSTURE', 'ACTIVITY']
     experiment = ForLoop(
-        prediction_set_files, summarize_prediction_set_file, merge_func=delayed(lambda x, **kwargs: pd.concat(x, axis=0)), targets=targets)
+        prediction_set_files, summarize_prediction_set_file, merge_func=delayed(lambda x, **kwargs: pd.concat(x, axis=0)), targets=targets, dataset_folder=dataset_folder)
     experiment.compute(scheulder='sync')
     result = experiment.get_result()
     # sort result
@@ -99,4 +124,4 @@ if __name__ == '__main__':
     dataset_folder = 'D:/data/spades_lab/'
     prediction_set_folder = os.path.join(
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets')
-    summarize_predictions(prediction_set_folder)
+    summarize_predictions(prediction_set_folder, dataset_folder)

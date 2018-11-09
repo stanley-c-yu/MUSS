@@ -8,7 +8,26 @@ Created on Thu Jun 14 11:03:13 2018
 
 import pandas as pd
 from padar_converter.dataset import spades
+import os
 
+
+def get_pa_abbr_labels(dataset_folder):
+    filepath = os.path.join(dataset_folder, 'DerivedCrossParticipants',
+                            'location_matters', 'location_matters.csv')
+    label_mapping = pd.read_csv(filepath)
+    labels = label_mapping['ACTIVITY_ABBR'].values.tolist()
+    labels.remove('Unknown')
+    labels.remove('Transit.')
+    return labels
+
+def get_pa_labels(dataset_folder):
+    filepath = os.path.join(dataset_folder, 'DerivedCrossParticipants',
+                            'location_matters', 'location_matters.csv')
+    label_mapping = pd.read_csv(filepath)
+    labels = label_mapping['ACTIVITY'].values.tolist()
+    labels.remove('Unknown')
+    labels.remove('Transition')
+    return labels
 
 class ClassLabeler:
     def __init__(self, class_label_set):
