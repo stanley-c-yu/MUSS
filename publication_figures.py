@@ -154,6 +154,13 @@ def figure_1(summary_file):
         'MO': 'Motion + orientation related features'
     })
 
+    line_plot_table = line_plot_data.groupby(['Number of sensors', 'Feature set']).apply(lambda rows: rows[['Posture', 'PA']].mean()).reset_index(drop=False)
+
+    line_plot_table_std = line_plot_data.groupby(['Number of sensors', 'Feature set']).apply(lambda rows: rows[['Posture', 'PA']].std()).reset_index(drop=True)
+
+    line_plot_table_std.columns = ['Posture std', 'PA std']
+    line_plot_table = pd.concat((line_plot_table, line_plot_table_std), axis=1)
+
     # prepare point plot data
     point_plot_data = summary.loc[summary['FEATURE_TYPE'] == 'MO', [
         'SENSOR_PLACEMENT', 'NUM_OF_SENSORS', 'POSTURE_AVERAGE', 'ACTIVITY_AVERAGE']]
@@ -237,6 +244,10 @@ def figure_1(summary_file):
     for output_filepath in output_filepaths:
         plt.savefig(output_filepath, dpi=300, orientation='landscape')
 
+    # save associated table
+    output_filepath = summary_file.replace(
+        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'figure1_table.csv')
+    line_plot_table.to_csv(output_filepath, index=False, float_format='%0.3f')
 
 def figure_2(prediction_set_file, confusion_matrix_file, dataset_folder):
     # prepare confusion matrix
