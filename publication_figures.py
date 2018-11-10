@@ -97,6 +97,7 @@ def table_3(summary_file):
         by=['Average'], ascending=False)
     filtered_table3_data.loc[:, 'Sensor placements'] = filtered_table3_data['Sensor placements'].transform(
         lambda s: s.replace('_', ', '))
+    filtered_table3_data = filtered_table3_data.drop_duplicates()
     table3_wb = format_for_excel(filtered_table3_data)
     filtered_table3_data.to_csv(
         output_filepath, float_format='%.2f', index=False)
@@ -122,6 +123,7 @@ def table_4(summary_file):
         by=['Average'], ascending=False)
     filtered_table4_data.loc[:, 'Sensor placements'] = filtered_table4_data['Sensor placements'].transform(
         lambda s: s.replace('_', ', '))
+    filtered_table4_data = filtered_table4_data.drop_duplicates()
     table4_wb = format_for_excel(filtered_table4_data)
     filtered_table4_data.to_csv(
         output_filepath, float_format='%.2f', index=False)
@@ -169,8 +171,8 @@ def figure_1(summary_file):
     point_plot_data = point_plot_data.sort_values(
         by=['Number of sensors', 'Classification task', 'F1-score'], ascending=True)
 
-    point_plot_data = point_plot_data.groupby(['Number of sensors', 'Classification task']).apply(
-        lambda rows: pd.concat((rows.head(5), rows.tail(5))))
+    # point_plot_data = point_plot_data.groupby(['Number of sensors', 'Classification task']).apply(
+    #     lambda rows: pd.concat((rows.head(5), rows.tail(5))))
     point_plot_data = point_plot_data.reset_index(drop=True).drop_duplicates()
 
     # draw plots
@@ -204,10 +206,10 @@ def figure_1(summary_file):
         legend_handles = axes[index][0].legend_.legendHandles
         legend_handles[2] = axes[index][0].lines[7]
         if task == 'Posture':
-            axes[index][0].legend(handles=legend_handles, labels=["Models include W sensors", "Models not include W sensors", "M + O features"],
+            axes[index][0].legend(handles=legend_handles, labels=["Models not include W sensors", "Models include W sensors", "M + O features"],
                                   frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
         else:
-            axes[index][0].legend(handles=legend_handles, labels=["Models include DW sensors", "Models not include DW sensors", "M + O features"],
+            axes[index][0].legend(handles=legend_handles, labels=["Models not include DW sensors", "Models include DW sensors", "M + O features"],
                                   frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
 
         # draw line for other feature set
@@ -295,8 +297,8 @@ if __name__ == '__main__':
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'DW_DT.MO.prediction.csv')
     figure_2_confusion_matrix_file = os.path.join(
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'confusion_matrices', 'DW_DT.MO.pa_confusion_matrix.csv')
-    # table_3(summary_file)
-    # table_4(summary_file)
-    # figure_1(summary_file)
-    figure_2(figure_2_prediction_set_file,
-             figure_2_confusion_matrix_file, dataset_folder)
+    table_3(summary_file)
+    table_4(summary_file)
+    figure_1(summary_file)
+    # figure_2(figure_2_prediction_set_file,
+            #  figure_2_confusion_matrix_file, dataset_folder)
