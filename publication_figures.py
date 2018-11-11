@@ -216,7 +216,7 @@ def figure_1(summary_file):
             axes[index][0].legend(handles=legend_handles, labels=["Models not include W sensors", "Models include W sensors", "M + O features"],
                                   frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
         else:
-            axes[index][0].legend(handles=legend_handles, labels=["Models not include DW sensors", "Models include DW sensors", "M + O features"],
+            axes[index][0].legend(handles=legend_handles, labels=["Models not include W sensors", "Models include W sensors", "M + O features"],
                                   frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
 
         # draw line for other feature set
@@ -308,8 +308,8 @@ if __name__ == '__main__':
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'DW_DT.MO.prediction.csv')
     figure_2_confusion_matrix_file = os.path.join(
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'confusion_matrices', 'DW_DT.MO.pa_confusion_matrix.csv')
-    table_3(summary_file)
-    table_4(summary_file)
+    # table_3(summary_file)
+    # table_4(summary_file)
     figure_1(summary_file)
     # figure_2(figure_2_prediction_set_file,
             #  figure_2_confusion_matrix_file, dataset_folder)
