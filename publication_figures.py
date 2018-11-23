@@ -19,12 +19,12 @@ def format_for_excel(df, highlight_header=True):
     wb = Workbook()
     ws = wb.active
     font_style = Font(name='Times New Roman', size=12)
-    redFill = PatternFill(start_color='EE1111',
-                          end_color='EE1111',
-                          fill_type='solid')
-    greenFill = PatternFill(start_color='11EE11',
-                            end_color='11EE11',
-                            fill_type='solid')
+    # redFill = PatternFill(start_color='EE1111',
+    #                       end_color='EE1111',
+    #                       fill_type='solid')
+    # greenFill = PatternFill(start_color='11EE11',
+    #                         end_color='11EE11',
+    #                         fill_type='solid')
     for row in dataframe_to_rows(df, index=False, header=True):
         ws.append(row)
 
@@ -32,6 +32,8 @@ def format_for_excel(df, highlight_header=True):
     for row in ws.iter_rows():
         for cell in row:
             cell.font = font_style
+            if 'nan' in str(cell.value):
+                cell.value = cell.value.split(' ± nan')[0]
             # first row
             if cell.row == 1:
                 cell.font = cell.font + Font(bold=True)
@@ -53,12 +55,12 @@ def format_for_excel(df, highlight_header=True):
                     right=Side(style='thin')
                 )
 
-    for col in range(2, ws.max_column + 1):
-        col_letter = get_column_letter(col)
-        ws.conditional_formatting.add(col_letter + '2:' + col_letter + str(ws.max_row), FormulaRule(
-            formula=[col_letter + '2>=LARGE($' + col_letter + '$2:$' + col_letter + '$' + str(ws.max_row) + ',5)'], fill=greenFill))
-        ws.conditional_formatting.add(col_letter + '2:' + col_letter + str(ws.max_row), FormulaRule(
-            formula=[col_letter + '2<=SMALL($' + col_letter + '$2:$' + col_letter + '$' + str(ws.max_row) + ',5)'], fill=redFill))
+    # for col in range(2, ws.max_column + 1):
+    #     col_letter = get_column_letter(col)
+    #     ws.conditional_formatting.add(col_letter + '2:' + col_letter + str(ws.max_row), FormulaRule(
+    #         formula=[col_letter + '2>=LARGE($' + col_letter + '$2:$' + col_letter + '$' + str(ws.max_row) + ',5)'], fill=greenFill))
+    #     ws.conditional_formatting.add(col_letter + '2:' + col_letter + str(ws.max_row), FormulaRule(
+    #         formula=[col_letter + '2<=SMALL($' + col_letter + '$2:$' + col_letter + '$' + str(ws.max_row) + ',5)'], fill=redFill))
 
     return wb
 
@@ -78,6 +80,18 @@ def top_n_misclassified_classes(conf_df, label, n=3):
     label_df = label_df.nlargest(n=3, columns=['# of samples']).reset_index(drop=False)
     return label_df.astype(str).apply(lambda row: row[0] + ', ' + row[1] + ' (' + row[2] + ')', axis=1)
 
+def basic_stat(df, columns, method='min_max'):
+    if method == 'min_max':
+        result = df[columns].min().round(2).astype(str) + ' - ' + df[columns].max().round(2).astype(str)
+        sort_col = df[columns[0]].mean().round(2)
+        result['SORT'] = sort_col
+        return result
+    elif method == 'mean_std':
+        result = df[columns].mean().round(2).astype(str) + ' ± ' + df[columns].std().round(2).astype(str)
+        sort_col = df[columns[0]].mean().round(2)
+        result['SORT'] = sort_col
+        return result
+
 def table_3(summary_file):
     output_filepath = summary_file.replace(
         'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table3.csv')
@@ -89,17 +103,74 @@ def table_3(summary_file):
         summary['NUM_OF_SENSORS'] <= 3)
     table3_data = summary.loc[filter_condition, [
         'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']]
-    filtered_table3_data = table3_data.groupby('NUM_OF_SENSORS').apply(
-        top_and_bottom_n, column='POSTURE_AVERAGE', n=5).reset_index(drop=True)
-    filtered_table3_data.columns = ['# of sensors', 'Sensor placements',
+
+    table3_data = table3_data.sort_values(by=['POSTURE_AVERAGE'], ascending=False).drop_duplicates()
+    # best models
+    best_models = table3_data.groupby('NUM_OF_SENSORS').apply(lambda rows: rows.head(1)).reset_index(drop=True).sort_values(by=['POSTURE_AVERAGE'], ascending=False)
+    best_models = best_models.loc[:, [
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']].round(2)
+    
+    # best models using wrist sensors
+    table3_data['USE_DW'] = table3_data['SENSOR_PLACEMENT'].transform(
+        lambda s: 'DW' in s.split('_'))
+    table3_data['USE_NDW'] = table3_data['SENSOR_PLACEMENT'].transform(
+        lambda s: 'NDW' in s.split('_'))
+    table3_data['USE_W'] = table3_data['USE_DW'] | table3_data['USE_NDW']
+    best_wrist_models = table3_data.loc[table3_data['USE_W'] == True,:].groupby('NUM_OF_SENSORS').apply(lambda rows: rows.nlargest(1, columns='POSTURE_AVERAGE')).reset_index(drop=True).sort_values(by=['POSTURE_AVERAGE'], ascending=False)
+    best_wrist_models = best_wrist_models.loc[:, [
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']].round(2)
+    # categorized performances
+    table3_data['CATEGORY'] = 'W'
+    
+    # condition 1: A, H, T
+    c1 = table3_data['SENSOR_PLACEMENT'].str.contains('A') & table3_data['SENSOR_PLACEMENT'].str.contains('H') & table3_data['SENSOR_PLACEMENT'].str.contains('T')
+    table3_data.loc[c1, 'CATEGORY'] = 'A, H, T'
+    # condition 2: A, T
+    c2 = table3_data['SENSOR_PLACEMENT'].str.contains('A') & table3_data['SENSOR_PLACEMENT'].str.contains('T') & (~table3_data['SENSOR_PLACEMENT'].str.contains('H'))
+    table3_data.loc[c2, 'CATEGORY'] = 'A, T'
+    # condition 3: A, H
+    c3 = table3_data['SENSOR_PLACEMENT'].str.contains('A') & table3_data['SENSOR_PLACEMENT'].str.contains('H') & (~table3_data['SENSOR_PLACEMENT'].str.contains('T'))
+    table3_data.loc[c3, 'CATEGORY'] = 'A, H'
+
+    # condition 4: H, T
+    c4 = table3_data['SENSOR_PLACEMENT'].str.contains('T') & table3_data['SENSOR_PLACEMENT'].str.contains('H') & (~table3_data['SENSOR_PLACEMENT'].str.contains('A'))
+    table3_data.loc[c4, 'CATEGORY'] = 'H, T'
+
+    # condition 5: A
+    c5 = table3_data['SENSOR_PLACEMENT'].str.contains('A') & (~table3_data['SENSOR_PLACEMENT'].str.contains('H')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('T'))
+    table3_data.loc[c5, 'CATEGORY'] = 'A'
+
+    # condition 6: H
+    c6 = table3_data['SENSOR_PLACEMENT'].str.contains('H') & (~table3_data['SENSOR_PLACEMENT'].str.contains('T')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('A'))
+    table3_data.loc[c6, 'CATEGORY'] = 'H'
+
+    # condition 7: T
+    c7 = table3_data['SENSOR_PLACEMENT'].str.contains('T') & (~table3_data['SENSOR_PLACEMENT'].str.contains('H')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('A'))
+    table3_data.loc[c7, 'CATEGORY'] = 'T'
+
+    # condition 8: only W
+    c8 = table3_data['SENSOR_PLACEMENT'].str.contains('W') & (~table3_data['SENSOR_PLACEMENT'].str.contains('H')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('A')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('T'))
+    table3_data.loc[c8, 'CATEGORY'] = 'W only'
+    
+    result = table3_data.groupby(['NUM_OF_SENSORS', 'CATEGORY', 'USE_W']).apply(basic_stat, columns=['POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
+    
+    result['CATEGORY'] = result['CATEGORY'] + result['USE_W'].transform(lambda x: ' (W)' if x else '')
+    result = result.drop(columns=['USE_W'])
+
+    best_models.columns = ['# of sensors', 'Sensor placements',
                                     'Average', 'Lying', 'Sitting', 'Upright']
-    filtered_table3_data = filtered_table3_data.sort_values(
-        by=['Average'], ascending=False)
-    filtered_table3_data.loc[:, 'Sensor placements'] = filtered_table3_data['Sensor placements'].transform(
+    best_wrist_models.columns = ['# of sensors', 'Sensor placements',
+                                    'Average', 'Lying', 'Sitting', 'Upright']
+    result.columns = ['# of sensors', 'Sensor placements',
+                                    'Average', 'Lying', 'Sitting', 'Upright']
+
+    best_models.loc[:, 'Sensor placements'] = best_models['Sensor placements'].transform(
         lambda s: s.replace('_', ', '))
-    filtered_table3_data = filtered_table3_data.drop_duplicates()
-    table3_wb = format_for_excel(filtered_table3_data)
-    filtered_table3_data.to_csv(
+    best_wrist_models.loc[:, 'Sensor placements'] = best_wrist_models['Sensor placements'].transform(
+        lambda s: s.replace('_', ', '))
+    result = pd.concat([best_models, best_wrist_models, result])
+    table3_wb = format_for_excel(result)
+    result.to_csv(
         output_filepath, float_format='%.2f', index=False)
     table3_wb.save(output_filepath_excel)
 
@@ -115,19 +186,139 @@ def table_4(summary_file):
         summary['NUM_OF_SENSORS'] <= 3)
     table4_data = summary.loc[filter_condition, [
         'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']]
-    filtered_table4_data = table4_data.groupby('NUM_OF_SENSORS').apply(
-        top_and_bottom_n, column='ACTIVITY_AVERAGE', n=5).reset_index(drop=True)
-    filtered_table4_data.columns = ['# of sensors', 'Sensor placements',
+
+    table4_data = table4_data.sort_values(by=['ACTIVITY_AVERAGE'], ascending=False).drop_duplicates()
+    # best models
+    best_models = table4_data.groupby('NUM_OF_SENSORS').apply(lambda rows: rows.head(1)).reset_index(drop=True).sort_values(by=['ACTIVITY_AVERAGE'], ascending=False)
+    best_models = best_models.loc[:, [
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']].round(2)
+    
+    # best models using wrist sensors
+    table4_data['USE_DW'] = table4_data['SENSOR_PLACEMENT'].transform(
+        lambda s: 'DW' in s.split('_'))
+    table4_data['USE_NDW'] = table4_data['SENSOR_PLACEMENT'].transform(
+        lambda s: 'NDW' in s.split('_'))
+    table4_data['DW_NDW_NONE'] = 'DW'
+    table4_data.loc[table4_data['USE_NDW'], 'DW_NDW_NONE'] = 'NDW'
+    table4_data['USE_W'] = table4_data['USE_DW'] | table4_data['USE_NDW']
+    table4_data.loc[~table4_data['USE_W'], 'DW_NDW_NONE'] = ''
+    table4_data.loc[table4_data['USE_DW'] & table4_data['USE_NDW'],'DW_NDW_NONE'] = 'Both W'
+    best_wrist_models = table4_data.loc[table4_data['USE_W'] == True,:].groupby('NUM_OF_SENSORS').apply(lambda rows: rows.nlargest(1, columns='ACTIVITY_AVERAGE')).reset_index(drop=True).sort_values(by=['ACTIVITY_AVERAGE'], ascending=False)
+    best_wrist_models = best_wrist_models.loc[:, [
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']].round(2)
+    # categorized performances
+    table4_data['CATEGORY'] = 'W'
+    
+    # condition 1: A, T, H
+    c1 = table4_data['SENSOR_PLACEMENT'].str.contains('A') & table4_data['SENSOR_PLACEMENT'].str.contains('H') & table4_data['SENSOR_PLACEMENT'].str.contains('T')
+    table4_data.loc[c1, 'CATEGORY'] = 'A, H, T'
+    # condition 2: A, T
+    c2 = table4_data['SENSOR_PLACEMENT'].str.contains('A') & table4_data['SENSOR_PLACEMENT'].str.contains('T') & (~table4_data['SENSOR_PLACEMENT'].str.contains('H'))
+    table4_data.loc[c2, 'CATEGORY'] = 'A, T'
+    # condition 4: A, H
+    c4 = table4_data['SENSOR_PLACEMENT'].str.contains('A') & table4_data['SENSOR_PLACEMENT'].str.contains('H') & (~table4_data['SENSOR_PLACEMENT'].str.contains('T'))
+    table4_data.loc[c4, 'CATEGORY'] = 'A, H'
+
+    # condition 4: H, T
+    c4 = table4_data['SENSOR_PLACEMENT'].str.contains('T') & table4_data['SENSOR_PLACEMENT'].str.contains('H') & (~table4_data['SENSOR_PLACEMENT'].str.contains('A'))
+    table4_data.loc[c4, 'CATEGORY'] = 'H, T'
+
+    # condition 5: A
+    c5 = table4_data['SENSOR_PLACEMENT'].str.contains('A') & (~table4_data['SENSOR_PLACEMENT'].str.contains('H')) & (~table4_data['SENSOR_PLACEMENT'].str.contains('T'))
+    table4_data.loc[c5, 'CATEGORY'] = 'A'
+
+    # condition 6: H
+    c6 = table4_data['SENSOR_PLACEMENT'].str.contains('H') & (~table4_data['SENSOR_PLACEMENT'].str.contains('T')) & (~table4_data['SENSOR_PLACEMENT'].str.contains('A'))
+    table4_data.loc[c6, 'CATEGORY'] = 'H'
+
+    # condition 7: T
+    c7 = table4_data['SENSOR_PLACEMENT'].str.contains('T') & (~table4_data['SENSOR_PLACEMENT'].str.contains('H')) & (~table4_data['SENSOR_PLACEMENT'].str.contains('A'))
+    table4_data.loc[c7, 'CATEGORY'] = 'T'
+
+    # condition 8: only W
+    c8 = table4_data['SENSOR_PLACEMENT'].str.contains('W') & (~table4_data['SENSOR_PLACEMENT'].str.contains('H')) & (~table4_data['SENSOR_PLACEMENT'].str.contains('A')) & (~table4_data['SENSOR_PLACEMENT'].str.contains('T'))
+    table4_data.loc[c8, 'CATEGORY'] = 'W only'
+
+    # categorized for wrist models
+    w_categories = table4_data.loc[table4_data['USE_W'], :].groupby(['NUM_OF_SENSORS', 'CATEGORY', 'DW_NDW_NONE']).apply(basic_stat, columns=['ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
+    
+    w_categories['CATEGORY'] = w_categories['DW_NDW_NONE'] + ', ' + w_categories['CATEGORY']
+    w_categories = w_categories.drop(columns=['DW_NDW_NONE'])
+
+    # categorize for non-wrist models
+    nw_categories = table4_data.loc[~table4_data['USE_W'], :].groupby(['NUM_OF_SENSORS']).apply(basic_stat, columns=['ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
+    nw_categories.insert(1, 'CATEGORY', 'A, H, T')
+
+    best_models.columns = ['# of sensors', 'Sensor placements',
                                     'Average', 'Between activity groups', 'Within activity groups']
-    filtered_table4_data = filtered_table4_data.sort_values(
-        by=['Average'], ascending=False)
-    filtered_table4_data.loc[:, 'Sensor placements'] = filtered_table4_data['Sensor placements'].transform(
+    best_wrist_models.columns = ['# of sensors', 'Sensor placements',
+                                    'Average', 'Between activity groups', 'Within activity groups']
+    w_categories.columns = ['# of sensors', 'Sensor placements',
+                                    'Average', 'Between activity groups', 'Within activity groups']
+    nw_categories.columns = ['# of sensors', 'Sensor placements',
+                                    'Average', 'Between activity groups', 'Within activity groups']
+
+    best_models.loc[:, 'Sensor placements'] = best_models['Sensor placements'].transform(
         lambda s: s.replace('_', ', '))
-    filtered_table4_data = filtered_table4_data.drop_duplicates()
-    table4_wb = format_for_excel(filtered_table4_data)
-    filtered_table4_data.to_csv(
+    best_wrist_models.loc[:, 'Sensor placements'] = best_wrist_models['Sensor placements'].transform(
+        lambda s: s.replace('_', ', '))
+    result = pd.concat([best_models, best_wrist_models, w_categories, nw_categories])
+    table4_wb = format_for_excel(result)
+    result.to_csv(
         output_filepath, float_format='%.2f', index=False)
     table4_wb.save(output_filepath_excel)
+
+
+def table_5(summary_file):
+    output_filepath = summary_file.replace(
+        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table5.csv')
+    output_filepath_excel = summary_file.replace(
+        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table5.xlsx')
+    os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+    summary = pd.read_csv(summary_file)
+    filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
+        summary['NUM_OF_SENSORS'] <= 3)
+    table5_data = summary.loc[filter_condition, [
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']]
+    filtered_table5_data = table5_data
+    filtered_table5_data.columns = ['# of sensors', 'Sensor placements',
+                                    'Average', 'Lying', 'Sitting', 'Upright']
+    filtered_table5_data = filtered_table5_data.sort_values(
+        by=['Average'], ascending=False)
+    filtered_table5_data.loc[:, 'Sensor placements'] = filtered_table5_data['Sensor placements'].transform(
+        lambda s: s.replace('_', ', '))
+    filtered_table5_data = filtered_table5_data.drop_duplicates()
+    table5_wb = format_for_excel(filtered_table5_data)
+    filtered_table5_data.to_csv(
+        output_filepath, float_format='%.2f', index=False)
+    table5_wb.save(output_filepath_excel)
+
+
+def table_6(summary_file):
+    output_filepath = summary_file.replace(
+        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table6.csv')
+    output_filepath_excel = summary_file.replace(
+        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table6.xlsx')
+    os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+    summary = pd.read_csv(summary_file)
+    filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
+        summary['NUM_OF_SENSORS'] <= 3)
+    table6_data = summary.loc[filter_condition, [
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']]
+    # filtered_table6_data = table6_data.groupby('NUM_OF_SENSORS').apply(
+    #     top_and_bottom_n, column='ACTIVITY_AVERAGE', n=5).reset_index(drop=True)
+    filtered_table6_data = table6_data
+    filtered_table6_data.columns = ['# of sensors', 'Sensor placements',
+                                    'Average', 'Between activity groups', 'Within activity groups']
+    filtered_table6_data = filtered_table6_data.sort_values(
+        by=['Average'], ascending=False)
+    filtered_table6_data.loc[:, 'Sensor placements'] = filtered_table6_data['Sensor placements'].transform(
+        lambda s: s.replace('_', ', '))
+    filtered_table6_data = filtered_table6_data.drop_duplicates()
+    table6_wb = format_for_excel(filtered_table6_data)
+    filtered_table6_data.to_csv(
+        output_filepath, float_format='%.2f', index=False)
+    table6_wb.save(output_filepath_excel)
 
 
 def figure_1(summary_file):
@@ -213,10 +404,10 @@ def figure_1(summary_file):
         legend_handles = axes[index][0].legend_.legendHandles
         legend_handles[2] = axes[index][0].lines[7]
         if task == 'Posture':
-            axes[index][0].legend(handles=legend_handles, labels=["Models not include W sensors", "Models include W sensors", "M + O features"],
+            axes[index][0].legend(handles=legend_handles, labels=["Models without wrist sensors", "Models with wrist sensors", "Motion + orientation features"],
                                   frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
         else:
-            axes[index][0].legend(handles=legend_handles, labels=["Models not include W sensors", "Models include W sensors", "M + O features"],
+            axes[index][0].legend(handles=legend_handles, labels=["Models without wrist sensors", "Models with wrist sensors", "Motion + orientation features"],
                                   frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
 
         # draw line for other feature set
@@ -225,19 +416,19 @@ def figure_1(summary_file):
             'Number of sensors', 'Feature set', task]].rename(columns={task: 'F1-score'})
         sns.pointplot(x='Number of sensors', y='F1-score', data=line_data_others,
                       dodge=True, ax=axes[index][1], hue='Feature set', palette='Greys', linestyles=['--', '-.'], markers='x', errwidth=0)
-        axes[index][1].legend(handles=[axes[index][1].lines[0], axes[index][1].lines[8]], labels=["M features", "O features"],
+        axes[index][1].legend(handles=[axes[index][1].lines[0], axes[index][1].lines[8]], labels=["Motion features", "Orientation features"],
                               frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
         axes[index][1].set_ylim(0, 1.2)
         axes[index][1].set_yticklabels([])
         axes[index][1].yaxis.set_major_formatter(plt.NullFormatter())
         axes[index][1].set_ylabel('')
         axes[index][1].yaxis.grid(linestyle='--')
-        axes[index][1].spines['left'].set_color('grey')
+        # axes[index][1].spines['left'].set_color('grey')
 
-    g.subplots_adjust(wspace=0, hspace=0.35)
-    plt.figtext(0.5, 0.49, '(a) Posture recognition performances',
+    g.subplots_adjust(wspace=0.04, hspace=0.35)
+    plt.figtext(0.5, 0.49, '(a) Posture recognition performance',
                 ha='center', va='top')
-    plt.figtext(0.5, 0.05, '(b) PA recognition performances',
+    plt.figtext(0.5, 0.05, '(b) PA recognition performance',
                 ha='center', va='top')
     # plt.show()
     # save figure in different formats
@@ -304,10 +495,10 @@ if __name__ == '__main__':
     dataset_folder = 'D:/data/spades_lab/'
     summary_file = os.path.join(
         dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'summary.csv')
-    figure_2_prediction_set_file = os.path.join(
-        dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'DW_DT.MO.prediction.csv')
-    figure_2_confusion_matrix_file = os.path.join(
-        dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'confusion_matrices', 'DW_DT.MO.pa_confusion_matrix.csv')
+    # figure_2_prediction_set_file = os.path.join(
+    #     dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'DW_DT.MO.prediction.csv')
+    # figure_2_confusion_matrix_file = os.path.join(
+    #     dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'confusion_matrices', 'DW_DT.MO.pa_confusion_matrix.csv')
     # table_3(summary_file)
     # table_4(summary_file)
     figure_1(summary_file)
