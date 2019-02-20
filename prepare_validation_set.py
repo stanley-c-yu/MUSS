@@ -6,6 +6,7 @@ from functools import reduce, partial
 from itertools import combinations, product
 from padar_parallel.for_loop import ForLoop
 from dask import delayed
+from helper import utils
 
 
 def merge_placements(left_set, right_set):
@@ -22,15 +23,18 @@ def merge_placements(left_set, right_set):
         left_suffix = ''
     else:
         left_suffix = '_' + left_p
-    joined_feature_set = pd.merge(left_set, right_set, how='outer',
-                                  on=on, suffixes=[left_suffix, '_' + right_p])
+    joined_feature_set = pd.merge(
+        left_set,
+        right_set,
+        how='outer',
+        on=on,
+        suffixes=[left_suffix, '_' + right_p])
     return joined_feature_set
 
 
 def merge_feature_and_class(left_set, right_set):
     on = ['START_TIME', 'STOP_TIME', 'PID']
-    joined_set = pd.merge(left_set, right_set, how='outer',
-                          on=on)
+    joined_set = pd.merge(left_set, right_set, how='outer', on=on)
     joined_set = joined_set.dropna()
     return joined_set
 
@@ -46,8 +50,7 @@ def merge_all_placements(feature_set, sensor_placements):
 
 @delayed
 def filter_by_pids(feature_set, class_set, pids):
-    feature_set = feature_set.loc[feature_set['PID'].isin(
-        pids), :]
+    feature_set = feature_set.loc[feature_set['PID'].isin(pids), :]
     class_set = class_set.loc[class_set['PID'].isin(pids), :]
     return (feature_set, class_set)
 
@@ -59,8 +62,7 @@ def filter_by_feature_type(feature_set, feature_type):
         feature_cols = list(
             filter(lambda col: 'ANGLE' not in col, feature_cols))
     elif feature_type == 'O':
-        feature_cols = list(
-            filter(lambda col: 'ANGLE' in col, feature_cols))
+        feature_cols = list(filter(lambda col: 'ANGLE' in col, feature_cols))
     selected_cols = feature_set.columns.values[:5].tolist() + feature_cols
     result = feature_set[selected_cols]
     result.insert(5, 'FEATURE_TYPE', feature_type)
@@ -71,26 +73,31 @@ def filter_by_feature_type(feature_set, feature_type):
 def merge_joined_feature_and_class(bundle):
     feature_set = bundle[0]
     class_set = bundle[1]
-    joined_set = feature_set.groupby(
-        'PID').apply(merge_feature_and_class, class_set)
+    joined_set = feature_set.groupby('PID').apply(merge_feature_and_class,
+                                                  class_set)
     return joined_set
 
 
 @delayed
 def filter_by_class_labels(joined_set, exclude_labels, class_name):
-    return joined_set.loc[np.logical_not(
-        joined_set[class_name].isin(exclude_labels)), :]
+    return joined_set.loc[np.logical_not(joined_set[class_name].
+                                         isin(exclude_labels)), :]
 
 
 @delayed
-def save_validation_set(joined_set, sensor_placements, feature_type, output_folder):
+def save_validation_set(joined_set, sensor_placements, feature_type,
+                        output_folder):
     os.makedirs(output_folder, exist_ok=True)
     output_filepath = os.path.join(
-        output_folder, '_'.join(sensor_placements) + '.' + feature_type + '.dataset.csv')
+        output_folder,
+        '_'.join(sensor_placements) + '.' + feature_type + '.dataset.csv')
     joined_set.to_csv(output_filepath, index=False)
     print('Saved ' + ','.join(sensor_placements) + ' ' + feature_type)
-    joined_set = {'SENSOR_PLACEMENT': sensor_placements,
-                  'DATA': joined_set, 'FEATURE_TYPE': feature_type}
+    joined_set = {
+        'SENSOR_PLACEMENT': sensor_placements,
+        'DATA': joined_set,
+        'FEATURE_TYPE': feature_type
+    }
     return joined_set
 
 
@@ -101,59 +108,75 @@ def save_datasets(joined_sets, output_folder):
         feature_type = joined_set['FEATURE_TYPE']
         joined_data = joined_set['DATA']
         output_filepath = os.path.join(
-            output_folder, '_'.join(sensor_placements) + '.' + feature_type + '.dataset.csv')
+            output_folder,
+            '_'.join(sensor_placements) + '.' + feature_type + '.dataset.csv')
         joined_data.to_csv(output_filepath, index=False)
         print('Saved ' + ','.join(sensor_placements))
 
 
-def prepare_dataset(input_bundles, feature_set_file, class_set_file, pids, output_folder=None, **kwargs):
+def prepare_dataset(input_bundles,
+                    feature_set_file,
+                    class_set_file,
+                    pids,
+                    output_folder=None,
+                    **kwargs):
 
     sensor_placements = input_bundles[0]
 
     feature_type = input_bundles[1]
 
-    feature_set = delayed(pd.read_csv)(feature_set_file, parse_dates=[
-        0, 1], infer_datetime_format=True)
+    feature_set = delayed(pd.read_csv)(
+        feature_set_file, parse_dates=[0, 1], infer_datetime_format=True)
 
-    class_set = delayed(pd.read_csv)(class_set_file, parse_dates=[
-        0, 1], infer_datetime_format=True)
+    class_set = delayed(pd.read_csv)(
+        class_set_file, parse_dates=[0, 1], infer_datetime_format=True)
 
     joined_feature_set = merge_all_placements(feature_set, sensor_placements)
 
-    filtered_feature_set = filter_by_feature_type(
-        joined_feature_set, feature_type)
+    filtered_feature_set = filter_by_feature_type(joined_feature_set,
+                                                  feature_type)
 
     filtered_bundle = filter_by_pids(filtered_feature_set, class_set, pids)
 
     joined_set = merge_joined_feature_and_class(filtered_bundle)
 
-    joined_set = filter_by_class_labels(
-        joined_set, ['Transition', 'Unknown'], 'ACTIVITY')
+    joined_set = filter_by_class_labels(joined_set, ['Transition', 'Unknown'],
+                                        'ACTIVITY')
 
-    return save_validation_set(joined_set, sensor_placements, feature_type, os.path.join(output_folder, 'validation_sets'))
+    return save_validation_set(joined_set, sensor_placements, feature_type,
+                               os.path.join(output_folder, 'datasets'))
 
 
 if __name__ == '__main__':
     input_folder = 'D:/data/spades_lab'
-    output_folder = os.path.join(
-        input_folder, 'DerivedCrossParticipants', 'location_matters')
+    input_folder = 'D:/data/mini_mhealth_dataset_cleaned'
+    output_folder = utils.generate_run_folder(input_folder, debug=False)
 
-    feature_set_file = os.path.join(
-        output_folder, 'location_matters.feature.csv')
-    class_set_file = os.path.join(output_folder, 'location_matters.class.csv')
+    feature_set_file = os.path.join(output_folder, 'muss.feature.csv')
+    class_set_file = os.path.join(output_folder, 'muss.class.csv')
 
     pids = dataset.get_pids(input_folder)
     placements = ['DW', 'NDW', 'DA', 'NDA', 'DH', 'NDH', 'DT']
     feature_types = ['M', 'O', 'MO']
-    placement_combinations = list(reduce(
-        lambda x, y: x + y, [list(combinations(placements, i)) for i in range(1, 8)]))
+    placement_combinations = list(
+        reduce(lambda x, y: x + y,
+               [list(combinations(placements, i)) for i in range(1, 8)]))
 
     input_bundles = product(placement_combinations, feature_types)
 
-    experiment = ForLoop(input_bundles, prepare_dataset,
-                         feature_set_file=feature_set_file, class_set_file=class_set_file, pids=pids, output_folder=output_folder)
-    experiment.show_workflow('workflow.pdf')
+    experiment = ForLoop(
+        input_bundles,
+        prepare_dataset,
+        feature_set_file=feature_set_file,
+        class_set_file=class_set_file,
+        pids=pids,
+        output_folder=output_folder)
+    profiling_filepath = os.path.join(output_folder,
+                                      'dataset_computation_profiling.html')
+    workflow_filepath = os.path.join(output_folder,
+                                     'dataset_computation_workflow.pdf')
+    experiment.show_workflow(workflow_filepath)
     experiment.compute(scheduler='processes')
-    experiment.show_profiling()
+    experiment.show_profiling(profiling_filepath)
     # results = experiment.get_result()
     # save_datasets(results, os.path.join(output_folder, 'validation_sets'))

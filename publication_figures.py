@@ -12,6 +12,7 @@ from openpyxl.styles import Font, Border, Side, PatternFill
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.utils import get_column_letter
 from helper.annotation_processor import get_pa_labels, get_pa_abbr_labels
+from helper.utils import generate_run_folder
 
 
 def format_for_excel(df, highlight_header=True):
@@ -92,13 +93,11 @@ def basic_stat(df, columns, method='min_max'):
         result['SORT'] = sort_col
         return result
 
-def table_3(summary_file):
-    output_filepath = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table3.csv')
-    output_filepath_excel = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table3.xlsx')
+def table_3(metrics_file, output_folder):
+    output_filepath = os.path.join(output_folder,'figures_and_tables', 'table3.csv')
+    output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'table3.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-    summary = pd.read_csv(summary_file)
+    summary = pd.read_csv(metrics_file)
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] <= 3)
     table3_data = summary.loc[filter_condition, [
@@ -175,13 +174,11 @@ def table_3(summary_file):
     table3_wb.save(output_filepath_excel)
 
 
-def table_4(summary_file):
-    output_filepath = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table4.csv')
-    output_filepath_excel = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table4.xlsx')
+def table_4(metrics_file, output_folder):
+    output_filepath = os.path.join(output_folder,'figures_and_tables', 'table4.csv')
+    output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'table4.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-    summary = pd.read_csv(summary_file)
+    summary = pd.read_csv(metrics_file)
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] <= 3)
     table4_data = summary.loc[filter_condition, [
@@ -269,13 +266,11 @@ def table_4(summary_file):
     table4_wb.save(output_filepath_excel)
 
 
-def table_5(summary_file):
-    output_filepath = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table5.csv')
-    output_filepath_excel = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table5.xlsx')
+def supplementary_table_1(metrics_file, output_folder):
+    output_filepath = os.path.join(output_folder,'figures_and_tables', 'supplementary_table1.csv')
+    output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'supplementary_table1.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-    summary = pd.read_csv(summary_file)
+    summary = pd.read_csv(metrics_file)
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] <= 3)
     table5_data = summary.loc[filter_condition, [
@@ -294,13 +289,11 @@ def table_5(summary_file):
     table5_wb.save(output_filepath_excel)
 
 
-def table_6(summary_file):
-    output_filepath = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table6.csv')
-    output_filepath_excel = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'table6.xlsx')
+def supplementary_table_2(metrics_file, output_folder):
+    output_filepath = os.path.join(output_folder,'figures_and_tables', 'supplementary_table2.csv')
+    output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'supplementary_table2.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-    summary = pd.read_csv(summary_file)
+    summary = pd.read_csv(metrics_file)
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] <= 3)
     table6_data = summary.loc[filter_condition, [
@@ -321,18 +314,17 @@ def table_6(summary_file):
     table6_wb.save(output_filepath_excel)
 
 
-def figure_1(summary_file):
+def figure_1(output_folder, metrics_file):
     rcParams['font.family'] = 'serif'
     rcParams['font.size'] = 12
     rcParams['font.serif'] = ['Times New Roman']
     # setup configurations
     figure_file_extensions = ['.png', '.svg', '.pdf', '.eps']
-    output_filepaths = [summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'figure1' + extension) for extension in figure_file_extensions]
+    output_filepaths = [os.path.join(output_folder, 'figures_and_tables', 'figure1' + extension) for extension in figure_file_extensions]
     os.makedirs(os.path.dirname(output_filepaths[0]), exist_ok=True)
 
     # read data
-    summary = pd.read_csv(summary_file)
+    summary = pd.read_csv(metrics_file)
 
     #  prepare line plot data
     line_plot_data = summary[[
@@ -398,7 +390,7 @@ def figure_1(summary_file):
         for x in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5]:
             axes[index][0].axvline(x=x, color='0.75')
         sns.swarmplot(x='Number of sensors', y='F1-score', data=swarm_data,
-                      ax=axes[index][0], linewidth=1, hue='Include wrists', palette='Greys', size=4)
+                      ax=axes[index][0], linewidth=1, hue='Include wrists', palette=sns.color_palette('Greys', n_colors=2), size=4)
         sns.pointplot(x='Number of sensors', y='F1-score',
                       data=line_data_mo, ax=axes[index][0], color='gray', marker='x', capsize=0.1, errwidth=0, hue='Feature set')
         legend_handles = axes[index][0].legend_.legendHandles
@@ -412,11 +404,11 @@ def figure_1(summary_file):
 
         # draw line for other feature set
 
-        line_data_others = line_plot_data.loc[line_plot_data['Feature set'] != 'Motion + orientation related features', [
+        line_data_others = line_plot_data.loc[:, [
             'Number of sensors', 'Feature set', task]].rename(columns={task: 'F1-score'})
         sns.pointplot(x='Number of sensors', y='F1-score', data=line_data_others,
-                      dodge=True, ax=axes[index][1], hue='Feature set', palette='Greys', linestyles=['--', '-.'], markers='x', errwidth=0)
-        axes[index][1].legend(handles=[axes[index][1].lines[0], axes[index][1].lines[8]], labels=["Motion features", "Orientation features"],
+                      dodge=True, ax=axes[index][1], hue='Feature set', hue_order=['Motion + orientation related features', 'Motion features only', 'Orientation related features only'], palette='Greys_r', linestyles=['-', '--', '-.'], markers='x', errwidth=0)
+        axes[index][1].legend(handles=[axes[index][1].lines[0], axes[index][1].lines[8], axes[index][1].lines[16]], labels=["Motion + orientation features", "Motion features", "Orientation features"],
                               frameon=True, loc='lower right', framealpha=1, fancybox=False, facecolor='white', edgecolor='black', shadow=None)
         axes[index][1].set_ylim(0, 1.2)
         axes[index][1].set_yticklabels([])
@@ -433,16 +425,16 @@ def figure_1(summary_file):
     # plt.show()
     # save figure in different formats
     for output_filepath in output_filepaths:
+        print('save ' + output_filepath)
         plt.savefig(output_filepath, dpi=300, orientation='landscape')
 
     # save associated table
-    output_filepath = summary_file.replace(
-        'prediction_sets', 'publication_figures_and_tables').replace('summary.csv', 'figure1_table.csv')
+    output_filepath = os.path.join(os.path.dirname(output_filepaths[0]), 'figure1.csv')
     line_plot_table.to_csv(output_filepath, index=False, float_format='%0.3f')
 
-def figure_2(prediction_set_file, confusion_matrix_file, dataset_folder):
+def figure_2(prediction_set_file, confusion_matrix_file, input_folder, output_folder):
     # prepare confusion matrix
-    abbr_labels = get_pa_abbr_labels(dataset_folder)
+    abbr_labels = get_pa_abbr_labels(input_folder)
     
     conf_df = pd.read_csv(confusion_matrix_file)
     conf_df = conf_df.rename(columns={conf_df.columns[0]: 'Ground Truth'})
@@ -465,13 +457,13 @@ def figure_2(prediction_set_file, confusion_matrix_file, dataset_folder):
 
     # save plot
     figure_file_extensions = ['.png', '.svg', '.pdf', '.eps']
-    output_filepaths = [os.path.join(dataset_folder, 'DerivedCrossParticipants', 'location_matters','publication_figures_and_tables', 'figure2' + extension) for extension in figure_file_extensions]
+    output_filepaths = [os.path.join(output_folder,'figures_and_tables', 'figure2' + extension) for extension in figure_file_extensions]
     os.makedirs(os.path.dirname(output_filepaths[0]), exist_ok=True)
     for output_filepath in output_filepaths:
         plt.savefig(output_filepath, dpi=300, orientation='landscape')
 
     # prepare plot associated table
-    labels = get_pa_labels(dataset_folder)
+    labels = get_pa_labels(input_folder)
     prediction_set = pd.read_csv(prediction_set_file, parse_dates=[
                                  0, 1], infer_datetime_format=True)
     
@@ -488,19 +480,121 @@ def figure_2(prediction_set_file, confusion_matrix_file, dataset_folder):
     result.columns = ['Activity', 'F1 score', 'Misclassifications', '', '']
 
     # save table
-    output_filepath = os.path.join(dataset_folder, 'DerivedCrossParticipants', 'location_matters','publication_figures_and_tables', 'figure2_table.csv')
+    output_filepath = os.path.join(output_folder,'figures_and_tables', 'figure2.csv')
     result.to_csv(output_filepath, float_format='%.2f', index=False)
 
+
+def dataset_summary(input_folder, output_folder):
+    exception_file = os.path.join(input_folder, "DerivedCrossParticipants", 'pid_exceptions.csv')
+    offset_mapping_file = os.path.join(input_folder, "DerivedCrossParticipants", 'offset_mapping.csv')
+    orientation_correction_file = os.path.join(input_folder, 'DerivedCrossParticipants', 'orientation_corrections.csv')
+    subject_file = os.path.join(input_folder, "DerivedCrossParticipants", 'subjects.csv')
+    class_file = os.path.join(output_folder, 'muss.class.csv')
+    subjects = pd.read_csv(subject_file, header=0)
+    exceptions = pd.read_csv(exception_file, header=0)
+    offset_mapping = pd.read_csv(offset_mapping_file, header=0)
+    classes = pd.read_csv(class_file, header=0, parse_dates=[0,1], infer_datetime_format=True)
+    orientation_corrections = pd.read_csv(orientation_correction_file, header=0)
+    selection = ~subjects.PID.isin(exceptions.PID)
+    selected_subjects = subjects.loc[selection,:]
+    selection = ~offset_mapping.PID.isin(exceptions.PID)
+    selected_offset_mapping = offset_mapping.loc[selection, :]
+    selection = ~orientation_corrections.PID.isin(exceptions.PID)
+    selected_orientation_corrections = orientation_corrections.loc[selection,:]
+    summary = dict()
+    summary['mean_age'] = selected_subjects.AGE.mean()
+    summary['std_age'] = selected_subjects.AGE.std()
+    summary['male'] = np.sum(selected_subjects.GENDER == 'M')
+    summary['female'] = np.sum(selected_subjects.GENDER == 'F')
+    summary['mean_bmi'] = selected_subjects.iloc[:, 5].mean()
+    summary['std_bmi'] = selected_subjects.iloc[:, 5].std()
+    summary['offset_percentage'] = np.sum(selected_offset_mapping.iloc[:, 1] != 0) / 42.0
+    summary['mean_offset'] = selected_offset_mapping.iloc[:, 1].mean()
+    summary['std_offset'] = selected_offset_mapping.iloc[:, 1].std()
+    summary['misplace_percentage'] = selected_orientation_corrections.shape[0] / (42.0 * 7)
+    # summary['misplace_ankle_percentage'] = np.sum(selected_orientation_corrections.SENSOR_PLACEMENT.str.contains('ankle|waist|thigh')) / selected_orientation_corrections.shape[0]
+    summary['total_samples'] = np.sum(~classes.ACTIVITY.isin(['Transition', 'Unknown']))
+    summary['total_activities'] = len(classes.ACTIVITY.unique()) - 2
+    summary['upright_samples'] = np.sum(classes.POSTURE == 'Upright')
+    summary['sitting_samples'] = np.sum(classes.POSTURE == 'Sitting')
+    summary['lying_samples'] = np.sum(classes.POSTURE == 'Lying')
+    activity_samples = classes.ACTIVITY.value_counts()
+    activity_samples = activity_samples.to_frame()
+    activity_samples['DURATION(MIN)'] = activity_samples.values * 12.8 / 60.0
+    ag_samples = classes.ACTIVITY_GROUP.value_counts()
+    ag_samples = ag_samples.to_frame()
+    ag_samples['DURATION(MIN)'] = ag_samples.values * 12.8 / 60.0
+    summary_output = os.path.join(output_folder, 'figures_and_tables', 'dataset_stats.csv')
+    summary_df = pd.DataFrame.from_dict(summary, orient='index')
+    summary_df.to_csv(summary_output, float_format='%.3f', index=True, header=False)
+    activity_samples_output = os.path.join(output_folder, 'figures_and_tables', 'activity_samples_stats.csv')
+    activity_samples.to_csv(activity_samples_output, float_format='%.3f', index=True, header=True)
+    ag_samples_output = os.path.join(output_folder, 'figures_and_tables', 'activity_group_samples_stats.csv')
+    ag_samples.to_csv(ag_samples_output, float_format='%.3f', index=True, header=True)
+
+def numbers_in_abstract(metrics_file, output_folder):
+    summary = pd.read_csv(metrics_file)
+    filter_condition = (summary.NUM_OF_SENSORS == 2) & (~summary.SENSOR_PLACEMENT.str.contains('W')) & (summary.FEATURE_TYPE == 'MO')
+    two_non_wrist_models = summary.loc[filter_condition,:]
+    print(two_non_wrist_models.SENSOR_PLACEMENT)
+
+    filter_condition2 = (summary.NUM_OF_SENSORS == 2) & (summary.SENSOR_PLACEMENT.str.contains('W')) & (summary.FEATURE_TYPE == 'MO')
+    two_wrist_models = summary.loc[filter_condition2,:]
+    print(two_wrist_models.SENSOR_PLACEMENT)
+
+    filter_condition3 = two_wrist_models.SENSOR_PLACEMENT != 'DW_NDW'
+    two_wrist_and_non_wrist_models = two_wrist_models.loc[filter_condition3,:]
+    print(two_wrist_and_non_wrist_models.SENSOR_PLACEMENT)
+
+
+    filter_condition4 = (summary.NUM_OF_SENSORS == 2) & (~summary.SENSOR_PLACEMENT.isin(two_wrist_and_non_wrist_models.SENSOR_PLACEMENT)) & (summary.FEATURE_TYPE == 'MO')
+    other_two_models = summary.loc[filter_condition4,:]
+    print(other_two_models.SENSOR_PLACEMENT)
+
+    result = dict()
+    result['TWO_NON_WRIST'] = {
+        'POSTURE_MEAN': two_non_wrist_models.POSTURE_AVERAGE.mean(),
+        'POSTURE_STD': two_non_wrist_models.POSTURE_AVERAGE.std(),
+        'PA_MEAN': two_non_wrist_models.ACTIVITY_AVERAGE.mean(),
+        'PA_STD': two_non_wrist_models.ACTIVITY_AVERAGE.std()
+    }
+    result['TWO_WRIST_AND_NON_WRIST'] = {
+        'POSTURE_MEAN': two_wrist_and_non_wrist_models.POSTURE_AVERAGE.mean(),
+        'POSTURE_STD': two_wrist_and_non_wrist_models.POSTURE_AVERAGE.std(),
+        'PA_MEAN': two_wrist_and_non_wrist_models.ACTIVITY_AVERAGE.mean(),
+        'PA_STD': two_wrist_and_non_wrist_models.ACTIVITY_AVERAGE.std()
+    }
+    result['TWO_WRIST'] = {
+        'POSTURE_MEAN': two_wrist_models.POSTURE_AVERAGE.mean(),
+        'POSTURE_STD': two_wrist_models.POSTURE_AVERAGE.std(),
+        'PA_MEAN': two_wrist_models.ACTIVITY_AVERAGE.mean(),
+        'PA_STD': two_wrist_models.ACTIVITY_AVERAGE.std()
+    }
+    result['OTHER_THAN_TWO_WRIST_AND_NON_WRIST'] = {
+        'POSTURE_MEAN': other_two_models.POSTURE_AVERAGE.mean(),
+        'POSTURE_STD': other_two_models.POSTURE_AVERAGE.std(),
+        'PA_MEAN': other_two_models.ACTIVITY_AVERAGE.mean(),
+        'PA_STD': other_two_models.ACTIVITY_AVERAGE.std()
+    }
+    result = pd.DataFrame(result).transpose()
+    output_filepath = os.path.join(output_folder,'figures_and_tables', 'numbers_in_abstract.csv')
+    result.to_csv(output_filepath, index=True, float_format='%.3f')
+
 if __name__ == '__main__':
-    dataset_folder = 'D:/data/spades_lab/'
-    summary_file = os.path.join(
-        dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'summary.csv')
-    # figure_2_prediction_set_file = os.path.join(
-    #     dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'prediction_sets', 'DW_DT.MO.prediction.csv')
-    # figure_2_confusion_matrix_file = os.path.join(
-    #     dataset_folder, 'DerivedCrossParticipants', 'location_matters', 'confusion_matrices', 'DW_DT.MO.pa_confusion_matrix.csv')
-    # table_3(summary_file)
-    # table_4(summary_file)
-    figure_1(summary_file)
-    # figure_2(figure_2_prediction_set_file,
-            #  figure_2_confusion_matrix_file, dataset_folder)
+    input_folder = 'D:/data/spades_lab/'
+    input_folder = 'D:/data/mini_mhealth_dataset_cleaned/'
+    output_folder = generate_run_folder(input_folder, debug=False)
+    metrics_file = os.path.join(output_folder, 'muss.metrics.csv')
+    figure_2_predictions = os.path.join(
+        output_folder, 'predictions', 'DW_DT.MO.prediction.csv')
+    figure_2_confusion_matrix = os.path.join(
+        output_folder, 'confusion_matrices', 'DW_DT.MO.confusion_matrix.csv')
+    table_3(metrics_file, output_folder)
+    table_4(metrics_file, output_folder)
+    figure_1(output_folder, metrics_file)
+    figure_2(figure_2_predictions,
+             figure_2_confusion_matrix, input_folder, output_folder)
+    supplementary_table_1(metrics_file, output_folder)
+    supplementary_table_2(metrics_file, output_folder)
+    dataset_summary(input_folder, output_folder)
+    numbers_in_abstract(metrics_file, output_folder)
