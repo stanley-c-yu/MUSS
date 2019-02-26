@@ -17,10 +17,9 @@ from functools import partial
 import shutil
 
 
-def save_to_file(data, metas):
+def save_to_file(data, metas, dataset_name):
     original_path = metas['original_path']
-    new_path = original_path.replace('mini_mhealth_dataset',
-                                     'mini_mhealth_dataset_cleaned')
+    new_path = original_path.replace(dataset_name, dataset_name + '_cleaned')
     new_dirs = os.path.dirname(new_path)
     os.makedirs(new_dirs, exist_ok=True)
     data.to_csv(
@@ -57,7 +56,9 @@ def _preprocess_sensor_data(item, all_items, **kwargs):
         y_flip=orientation_correction[1],
         z_flip=orientation_correction[2])
 
-    corrected_data = delayed(save_to_file)(corrected_data, metas)
+    dataset_name = kwargs['dataset_name']
+
+    corrected_data = delayed(save_to_file)(corrected_data, metas, dataset_name)
 
     return GroupBy.bundle(corrected_data, **metas)
 
@@ -90,9 +91,8 @@ def clean_sensor_data(input_folder,
         ingroup_sortkey_func=sort_by_file_timestamp,
         descending=False)
 
-    groupby.apply(_preprocess_sensor_data)
-
-    groupby.compute_intermediate(scheduler=scheduler)
+    groupby.apply(
+        _preprocess_sensor_data, dataset_name=os.path.basename(input_folder))
 
     groupby.final_join()
 
@@ -104,7 +104,7 @@ def copy_annotation_files(input_folder, dataset_name):
         os.path.join(input_folder, '*', 'MasterSynced', '**',
                      'SPADESInLab*annotation.csv'),
         recursive=True)
-
+    print(annotation_files)
     annotation_files = list(filter(dataset.is_pid_included, annotation_files))
     for f in annotation_files:
         new_f = f.replace(dataset_name, dataset_name + '_cleaned')
@@ -123,9 +123,12 @@ def copy_meta_files(input_folder, dataset_name):
         new_p = p.replace(dataset_name, dataset_name + '_cleaned')
         os.makedirs(os.path.dirname(new_p), exist_ok=True)
         shutil.copyfile(p, new_p)
+        print('copied to ' + new_p)
 
 
 def main(input_folder, debug_mode=True, scheduler='processes'):
+    if input_folder.endswith('/'):
+        input_folder = input_folder[:-1]
     dataset_name = os.path.basename(input_folder)
     output_folder = input_folder.replace(dataset_name,
                                          dataset_name + '_cleaned')
@@ -135,11 +138,11 @@ def main(input_folder, debug_mode=True, scheduler='processes'):
 
 
 if __name__ == '__main__':
-    input_folder = os.path.join(
-        os.path.expanduser('~'), 'Projects/data/spades_lab')
-    input_folder = 'D:/data/mini_mhealth_dataset'
-    # input_folder = 'D:/data/spades_lab'
-    scheduler = 'processes'
-    print(input_folder)
-    main(input_folder, scheduler=scheduler)
-    # run(prepare_feature_set)
+    # input_folder = os.path.join(
+    #     os.path.expanduser('~'), 'Projects/data/spades_lab')
+    # input_folder = 'D:/data/mini_mhealth_dataset/'
+    # # input_folder = 'D:/data/spades_lab'
+    # scheduler = 'sync'
+    # print(input_folder)
+    # main(input_folder, scheduler=scheduler)
+    run(main)
