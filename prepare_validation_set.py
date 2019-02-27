@@ -7,6 +7,7 @@ from itertools import combinations, product
 from padar_parallel.for_loop import ForLoop
 from dask import delayed
 from helper import utils
+from clize import run
 
 
 def merge_placements(left_set, right_set):
@@ -101,19 +102,6 @@ def save_validation_set(joined_set, sensor_placements, feature_type,
     return joined_set
 
 
-def save_datasets(joined_sets, output_folder):
-    os.makedirs(output_folder, exist_ok=True)
-    for joined_set in joined_sets:
-        sensor_placements = joined_set['SENSOR_PLACEMENT']
-        feature_type = joined_set['FEATURE_TYPE']
-        joined_data = joined_set['DATA']
-        output_filepath = os.path.join(
-            output_folder,
-            '_'.join(sensor_placements) + '.' + feature_type + '.dataset.csv')
-        joined_data.to_csv(output_filepath, index=False)
-        print('Saved ' + ','.join(sensor_placements))
-
-
 def prepare_dataset(input_bundles,
                     feature_set_file,
                     class_set_file,
@@ -147,13 +135,25 @@ def prepare_dataset(input_bundles,
                                os.path.join(output_folder, 'datasets'))
 
 
-if __name__ == '__main__':
-    input_folder = 'D:/data/spades_lab'
-    input_folder = 'D:/data/mini_mhealth_dataset_cleaned'
-    output_folder = utils.generate_run_folder(input_folder, debug=False)
+def main(input_folder, *, debug=False, scheduler='processes'):
+    """Prepare validation sets
 
+    :param input_folder: Folder path of input raw dataset
+    :param debug: Use this flag to output results to 'debug_run' folder
+    :param scheduler: 'processes': Use multi-core processing;
+                      'threads': Use python threads (not-in-parallel);
+                      'sync': Use a single thread in sequential order
+    """
+    input_folder = utils.strip_path(input_folder)
+    output_folder = utils.generate_run_folder(input_folder, debug=debug)
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
     feature_set_file = os.path.join(output_folder, 'muss.feature.csv')
     class_set_file = os.path.join(output_folder, 'muss.class.csv')
+    profiling_filepath = os.path.join(output_folder,
+                                      'dataset_computation_profiling.html')
+    workflow_filepath = os.path.join(output_folder,
+                                     'dataset_computation_workflow.pdf')
 
     pids = dataset.get_pids(input_folder)
     placements = ['DW', 'NDW', 'DA', 'NDA', 'DH', 'NDH', 'DT']
@@ -161,9 +161,7 @@ if __name__ == '__main__':
     placement_combinations = list(
         reduce(lambda x, y: x + y,
                [list(combinations(placements, i)) for i in range(1, 8)]))
-
     input_bundles = product(placement_combinations, feature_types)
-
     experiment = ForLoop(
         input_bundles,
         prepare_dataset,
@@ -171,12 +169,10 @@ if __name__ == '__main__':
         class_set_file=class_set_file,
         pids=pids,
         output_folder=output_folder)
-    profiling_filepath = os.path.join(output_folder,
-                                      'dataset_computation_profiling.html')
-    workflow_filepath = os.path.join(output_folder,
-                                     'dataset_computation_workflow.pdf')
     experiment.show_workflow(workflow_filepath)
-    experiment.compute(scheduler='processes')
+    experiment.compute(scheduler=scheduler)
     experiment.show_profiling(profiling_filepath)
-    # results = experiment.get_result()
-    # save_datasets(results, os.path.join(output_folder, 'validation_sets'))
+
+
+if __name__ == '__main__':
+    run(main)

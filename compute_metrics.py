@@ -6,7 +6,8 @@ from sklearn.metrics import f1_score, confusion_matrix
 import numpy as np
 from functools import reduce
 from padar_parallel.for_loop import ForLoop
-from helper.utils import generate_run_folder
+from helper.utils import generate_run_folder, strip_path
+from clize import run
 
 
 def pa_to_activity_group(prediction_set):
@@ -133,7 +134,21 @@ def _compute_metrics(prediction_set, targets, pa_labels, prediction_set_file):
     return reduce(pd.merge, metrics)
 
 
-def main(prediction_set_folder, input_folder, output_folder):
+def main(input_folder, *, debug=False, scheduler='processes'):
+    """Compute metrics for the validation predictions.
+
+    :param input_folder: Folder path of input raw dataset
+    :param debug: Use this flag to output results to 'debug_run' folder
+    :param scheduler: 'processes': Use multi-core processing;
+                      'threads': Use python threads (not-in-parallel);
+                      'sync': Use a single thread in sequential order
+    """
+    input_folder = strip_path(input_folder)
+    output_folder = generate_run_folder(input_folder, debug=debug)
+    prediction_set_folder = os.path.join(output_folder, 'predictions')
+    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(prediction_set_folder, exist_ok=True)
+
     prediction_set_files = glob(
         os.path.join(prediction_set_folder, '*.prediction.csv'))
     targets = ['POSTURE', 'ACTIVITY']
@@ -143,7 +158,7 @@ def main(prediction_set_folder, input_folder, output_folder):
         merge_func=delayed(lambda x, **kwargs: pd.concat(x, axis=0)),
         targets=targets,
         dataset_folder=input_folder)
-    experiment.compute(scheulder='sync')
+    experiment.compute(scheulder=scheduler)
     result = experiment.get_result()
     # sort result
     result = result.sort_values(by=['NUM_OF_SENSORS', 'FEATURE_TYPE'])
@@ -154,8 +169,4 @@ def main(prediction_set_folder, input_folder, output_folder):
 
 
 if __name__ == '__main__':
-    input_folder = 'D:/data/spades_lab/'
-    input_folder = 'D:/data/mini_mhealth_dataset_cleaned/'
-    output_folder = generate_run_folder(input_folder, debug=False)
-    prediction_set_folder = os.path.join(output_folder, 'predictions')
-    main(prediction_set_folder, input_folder, output_folder)
+    run(main)

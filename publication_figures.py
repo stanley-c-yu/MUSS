@@ -12,7 +12,8 @@ from openpyxl.styles import Font, Border, Side, PatternFill
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.utils import get_column_letter
 from helper.annotation_processor import get_pa_labels, get_pa_abbr_labels
-from helper.utils import generate_run_folder
+from helper.utils import generate_run_folder, strip_path
+from clize import run
 
 
 def format_for_excel(df, highlight_header=True):
@@ -580,10 +581,15 @@ def numbers_in_abstract(metrics_file, output_folder):
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'numbers_in_abstract.csv')
     result.to_csv(output_filepath, index=True, float_format='%.3f')
 
-if __name__ == '__main__':
-    input_folder = 'D:/data/spades_lab/'
-    input_folder = 'D:/data/mini_mhealth_dataset_cleaned/'
-    output_folder = generate_run_folder(input_folder, debug=False)
+def main(input_folder, *, debug=False):
+    """Generate figures and tables used in the paper
+
+    :param input_folder: Folder path of input raw dataset
+    :param debug: Use this flag to output results to 'debug_run' folder
+    """
+    input_folder = strip_path(input_folder)
+    output_folder = generate_run_folder(input_folder, debug=debug)
+    os.makedirs(output_folder, exist_ok=True)
     metrics_file = os.path.join(output_folder, 'muss.metrics.csv')
     figure_2_predictions = os.path.join(
         output_folder, 'predictions', 'DW_DT.MO.prediction.csv')
@@ -598,3 +604,9 @@ if __name__ == '__main__':
     supplementary_table_2(metrics_file, output_folder)
     dataset_summary(input_folder, output_folder)
     numbers_in_abstract(metrics_file, output_folder)
+
+if __name__ == '__main__':
+    run(main)
+    
+    
+    

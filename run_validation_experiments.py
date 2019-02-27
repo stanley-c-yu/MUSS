@@ -1,11 +1,13 @@
 import pandas as pd
 from helper.svm_model import loso_validation
+from helper import utils
 from dask import delayed
 from itertools import product
 from padar_parallel.for_loop import ForLoop
 from glob import glob
 import os
 from helper.utils import generate_run_folder
+from clize import run
 
 
 def run_all_experiments(dataset_folder, scheduler='processes'):
@@ -85,10 +87,23 @@ def run_loso(validation_set, target):
     return y_pred
 
 
-if __name__ == '__main__':
-    input_folder = 'D:/data/spades_lab/'
-    input_folder = 'D:/data/mini_mhealth_dataset_cleaned/'
-    output_folder = generate_run_folder(input_folder, debug=False)
-    dataset_folder = os.path.join(output_folder, 'datasets')
+def main(input_folder, *, debug=False, scheduler='processes'):
+    """Run validation experiments.
+
+    :param input_folder: Folder path of input raw dataset
+    :param debug: Use this flag to output results to 'debug_run' folder
+    :param scheduler: 'processes': Use multi-core processing;
+                      'threads': Use python threads (not-in-parallel);
+                      'sync': Use a single thread in sequential order
+    """
+    input_folder = utils.strip_path(input_folder)
+    output_folder = generate_run_folder(input_folder, debug=debug)
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder, exist_ok=True)
     os.makedirs(os.path.join(output_folder, 'logs'), exist_ok=True)
-    run_all_experiments(dataset_folder, scheduler='processes')
+    dataset_folder = os.path.join(output_folder, 'datasets')
+    run_all_experiments(dataset_folder, scheduler=scheduler)
+
+
+if __name__ == '__main__':
+    run(main)
