@@ -2,7 +2,7 @@ import numpy as np
 import os
 from glob import glob
 import pandas as pd
-from helper import log
+from helper import log, utils
 from padar_converter.mhealth import dataset, fileio, dataframe
 from padar_parallel.groupby import GroupBy, GroupByWindowing
 from padar_parallel.grouper import MHealthGrouper
@@ -127,8 +127,7 @@ def copy_meta_files(input_folder, dataset_name):
 
 
 def main(input_folder, debug_mode=True, scheduler='processes'):
-    if input_folder.endswith('/'):
-        input_folder = input_folder[:-1]
+    input_folder = utils.strip_path(input_folder)
     dataset_name = os.path.basename(input_folder)
     output_folder = input_folder.replace(dataset_name,
                                          dataset_name + '_cleaned')

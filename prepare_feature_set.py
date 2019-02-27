@@ -36,8 +36,8 @@ def compute_features(df, **kwargs):
 
 
 def prepare_feature_set(input_folder,
-                        output_folder,
-                        debug_mode=True,
+                        *,
+                        debug=False,
                         sampling_rate=80,
                         scheduler='processes'):
     """Compute feature set for "Location Matters" paper by Tang et al.
@@ -45,13 +45,17 @@ def prepare_feature_set(input_folder,
     Process the given raw dataset (stored in mhealth format) and generate feature set file in csv format along with a profiling report and feature computation pipeline diagram.
 
     :param input_folder: Folder path of input raw dataset
-    :param output_folder: Folder path of output feature set files and other computation reports
-    :param debug_mode: If true, output debug messages in log file
+    :param debug: Use this flag to output results to 'debug_run' folder
     :param sampling_rate: The sampling rate of the raw accelerometer data in Hz
-    :param scheduler: 'processes': Use multi-core processing; 
-                      'threads': Use python threads (not-in-parallel)
-                      'synchronous': Use a single thread in sequential order
+    :param scheduler: 'processes': Use multi-core processing;
+                      'threads': Use python threads (not-in-parallel);
+                      'sync': Use a single thread in sequential order
     """
+    input_folder = utils.strip_path(input_folder)
+    output_folder = utils.generate_run_folder(input_folder, debug=debug)
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
     sensor_files = glob(
         os.path.join(input_folder, '*', 'MasterSynced', '**',
@@ -102,17 +106,15 @@ def prepare_feature_set(input_folder,
 
 
 if __name__ == '__main__':
-    input_folder = os.path.join(
-        os.path.expanduser('~'), 'Projects/data/spades_lab')
-    input_folder = 'D:/data/mini_mhealth_dataset_cleaned'
-    # input_folder = 'D:/data/spades_lab'
-    output_folder = utils.generate_run_folder(input_folder, debug=False)
-    sampling_rate = 80
-    scheduler = 'processes'
-    print(input_folder)
-    prepare_feature_set(
-        input_folder,
-        output_folder,
-        sampling_rate=sampling_rate,
-        scheduler=scheduler)
-    # run(prepare_feature_set)
+    # input_folder = os.path.join(
+    #     os.path.expanduser('~'), 'Projects/data/spades_lab')
+    # input_folder = 'D:/data/mini_mhealth_dataset_cleaned'
+    # # input_folder = 'D:/data/spades_lab'
+    # sampling_rate = 80
+    # scheduler = 'processes'
+    # print(input_folder)
+    # prepare_feature_set(
+    #     input_folder,
+    #     sampling_rate=sampling_rate,
+    #     scheduler=scheduler)
+    run(prepare_feature_set)

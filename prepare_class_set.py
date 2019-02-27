@@ -2,7 +2,7 @@ import numpy as np
 import os
 from glob import glob
 import pandas as pd
-from helper import log
+from helper import log, utils
 from padar_converter.mhealth import dataset, fileio, dataframe
 from padar_converter.annotation.data_format import to_mutually_exclusive
 from padar_parallel.groupby import GroupBy, GroupByWindowing
@@ -109,21 +109,21 @@ def convert_annotations(df, **kwargs):
     return matched_classes
 
 
-def prepare_class_set(input_folder,
-                      output_folder,
-                      debug_mode=True,
-                      scheduler='processes'):
+def prepare_class_set(input_folder, *, debug=False, scheduler='processes'):
     """Compute class set for "Location Matters" paper by Tang et al.
 
     Process the given annotations (stored in mhealth format) and generate class set file in csv format along with a profiling report and class set conversion  pipeline diagram.
 
     :param input_folder: Folder path of input raw dataset
-    :param output_folder: Folder path of output feature set files and other computation reports
-    :param debug_mode: If true, output debug messages in log file
-    :param scheduler: 'processes': Use multi-core processing; 
-                      'threads': Use python threads (not-in-parallel)
-                      'synchronous': Use a single thread in sequential order
+    :param debug: Use this flag to output results to 'debug_run' folder
+    :param scheduler: 'processes': Use multi-core processing;
+                      'threads': Use python threads (not-in-parallel);
+                      'sync': Use a single thread in sequential order
     """
+
+    input_folder = utils.strip_path(input_folder)
+    output_folder = utils.generate_run_folder(input_folder, debug=debug)
+
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
@@ -153,13 +153,12 @@ def prepare_class_set(input_folder,
 
 
 if __name__ == '__main__':
-    input_folder = os.path.join(
-        os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
-    input_folder = 'D:/data/mini_mhealth_dataset_cleaned/'
+    # input_folder = os.path.join(
+    #     os.path.expanduser('~'), 'Projects/data/mini-mhealth-dataset')
+    # input_folder = 'D:/data/mini_mhealth_dataset_cleaned/'
     # input_folder = 'D:/data/spades_lab/'
-    output_folder = generate_run_folder(input_folder, debug=False)
+    # output_folder = generate_run_folder(input_folder, debug=False)
 
-    scheduler = 'processes'
-    print(input_folder)
-    prepare_class_set(input_folder, output_folder, scheduler=scheduler)
-    # run(prepare_class_set)
+    # scheduler = 'processes'
+    # prepare_class_set(input_folder, scheduler=scheduler)
+    run(prepare_class_set)

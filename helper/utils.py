@@ -11,3 +11,13 @@ def generate_run_folder(input_folder, debug=False):
         output_folder = os.path.join(input_folder, 'DerivedCrossParticipants',
                                      date_now, 'debug_run')
     return output_folder
+
+
+def strip_path(path):
+    if path.endswith('/'):
+        return path[:-1]
+
+
+def print_args(args):
+    for name, arg in args.items():
+        print(name + ': ' + str(arg))
