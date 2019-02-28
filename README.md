@@ -14,7 +14,7 @@ In-submission.
 
 ## Run using Colab notebook
 
-We provide a step by step guide on Google Colab to reproduce the results and see the intermediate results. Due to limited computing resources, if using Colab's hosted runtime environment, it takes very long time (2-3h) to finish the entire process. If you do not want to wait, you may set up your own local runtime according to Colab's guidance. The source codes are optimized to use parallel computing (based on `Dask` package) on multi-core machines. It is recommended to use at least 8-core (more the faster) workstation for this project.
+We provide a step by step guide on Google Colab to reproduce the results and see the intermediate results. Due to limited computing resources, if using Colab's hosted runtime environment, it takes very long time (2-3h) to finish the entire process. If you do not want to wait, you may set up your own local runtime according to [Colab's guidance](https://research.google.com/colaboratory/local-runtimes.html). The source codes are optimized to use parallel computing (based on `Dask` package) on multi-core machines. It is recommended to use at least 8-core (more the faster) workstation for this project.
 
 ## Run from a terminal in your local runtime
 
