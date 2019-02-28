@@ -1,1 +1,8 @@
-theme: jekyll-theme-cayman
+theme: jekyll-theme-minimal
+title: "MUSS: Multi- vs. single-site accelerometer sensing for posture and activity recognition using machine learning"
+description: Data and reproducible code for MUSS
+show_downloads: "true"
+github:
+  data_url: https://github.com/qutang/MUSS/releases/download/data/muss_data.tar.gz
+  code_url: https://github.com/qutang/MUSS/archive/master.zip
+  owner_url: https://github.com/qutang/

@@ -61,7 +61,11 @@ Make sure you are in the root folder of the code repository from now on.
 
     Make sure the dataset folder is in the root folder of the code repository.
 
-Now we will start reproducing the results using the dataset. All results will be in the output folder: `DerivedCrossParticipants/[CURRENT_DATE]/product_run/` inside the dataset folder. If `--debug` flag is turned on for the following scripts, it will use `debug_run` instead of `product_run` for the folder name of all results.
+Now we will start reproducing the results using the dataset. All results will be in the output folder: 
+```
+DerivedCrossParticipants/[CURRENT_DATE]/product_run/
+``` 
+inside the dataset folder. If `--debug` flag is turned on for the following scripts, it will use `debug_run` instead of `product_run` for the folder name of all results.
 
 4. Generate class labels from annotations
 
