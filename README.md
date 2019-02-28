@@ -37,7 +37,7 @@ We provide a step by step guide on Google Colab to reproduce the results and see
 
     If you do not have `git` installed, go to https://github.com/qutang/MUSS/archive/master.zip and use your browser to download the code repository. Then unzip it. Open a terminal and navigate into the unzipped folder.
 
-Make sure you are in the root folder of the code repository from now on.
+    Make sure you are in the root folder of the code repository from now on.
 
 2. Install dependencies
 
@@ -61,13 +61,15 @@ Make sure you are in the root folder of the code repository from now on.
 
     Make sure the dataset folder is in the root folder of the code repository.
 
+### Reproduce results
+
 Now we will start reproducing the results using the dataset. All results will be in the output folder: 
 ```
 DerivedCrossParticipants/[CURRENT_DATE]/product_run/
 ``` 
 inside the dataset folder. If `--debug` flag is turned on for the following scripts, it will use `debug_run` instead of `product_run` for the folder name of all results.
 
-4. Generate class labels from annotations
+1. Generate class labels from annotations
 
     ```bash
     > pipenv run python prepare_class_set.py ./muss_data/ scheduler="processes"
@@ -86,7 +88,7 @@ inside the dataset folder. If `--debug` flag is turned on for the following scri
     * **`muss.class.csv`**: the class labels by segmentation window (12.8s) for the whole dataset.
     * `muss.classmap.csv`: intermediate file used to parse class labels.
 
-5. Generate features from raw sensory data
+2. Generate features from raw sensory data
 
     ```bash
     > pipenv run python prepare_class_set.py ./muss_data/ sampling-rate=80 scheduler="processes"
@@ -105,7 +107,7 @@ inside the dataset folder. If `--debug` flag is turned on for the following scri
     * `feature_computation_profiling.html`: the computational profiling (memory, cpu, and disk) visualization
     * **`muss.feature.csv`**: the feature values by segmentation window (12.8s) for the whole dataset.
 
-5. Generate validation datasets for each experiment
+3. Generate validation datasets for each experiment
 
     Because features and class labels are stored in a `long-form` for the entire dataset (for all placements, participants), we want to divide and combine different subsets together to form validation datasets for different experiments.
 
@@ -128,7 +130,7 @@ inside the dataset folder. If `--debug` flag is turned on for the following scri
     * `dataset_computation_profiling.html`: the computational profiling (memory, cpu, and disk) visualization
     * **`datasets/*.dataset.csv`**: the validation dataset files for different sensor combinations and feature sets.
 
-6. Run LOSO validation on each validation dataset
+4. Run LOSO validation on each validation dataset
 
     ```bash
     > pipenv run python run_validation_experiments.py ./muss_data/ scheduler="processes" 
@@ -147,7 +149,7 @@ inside the dataset folder. If `--debug` flag is turned on for the following scri
     * `dataset_computation_profiling.html`: the computational profiling (memory, cpu, and disk) visualization
     * **`predictions/*.prediction.csv`**: the prediction results per window for each validation dataset.
 
-7. Compute metrics across all prediction results
+5. Compute metrics across all prediction results
 
     You may find the descriptions of all metrics in the manuscript.
    
@@ -169,7 +171,7 @@ inside the dataset folder. If `--debug` flag is turned on for the following scri
     * **`muss.metrics.csv`**: the metrics summary across all validation datasets.
     * **`confusion_matrices/*.confusion_matrix.csv`**: the confusion matrix of activity recognition (not posture recognition) for each validation dataset.
 
-8. Generate figures and tables used in the manuscript
+6. Generate figures and tables used in the manuscript
 
     ```bash
     > pipenv run python publication_figures.py ./muss_data/
