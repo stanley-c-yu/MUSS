@@ -6,7 +6,8 @@ _source codes and data_
 
 ## Corresponding author
 
-Qu Tang. Contact me via github issues. https://github.com/qutang/MUSS
+<div class="github-card" data-github="qutang" data-width="400" data-height="150" data-theme="default"></div>
+<script src="//cdn.jsdelivr.net/github-cards/latest/widget.js"></script>
 
 ## Citation
 
