@@ -3,3 +3,5 @@ __pycache__
 *.pyc
 _site
 .jekyll-metadata
+muss_data*
+.ipynb_checkpoints

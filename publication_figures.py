@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-from matplotlib import rcParams
+from matplotlib import rcParams, rcParamsDefault
 import matplotlib.gridspec as gridspec
 import seaborn as sns
 from sklearn.metrics import f1_score
@@ -94,7 +94,8 @@ def basic_stat(df, columns, method='min_max'):
         result['SORT'] = sort_col
         return result
 
-def table_3(metrics_file, output_folder):
+def table_3(input_folder, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'table3.csv')
     output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'table3.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
@@ -173,9 +174,11 @@ def table_3(metrics_file, output_folder):
     result.to_csv(
         output_filepath, float_format='%.2f', index=False)
     table3_wb.save(output_filepath_excel)
+    return result
 
 
-def table_4(metrics_file, output_folder):
+def table_4(input_folder, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'table4.csv')
     output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'table4.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
@@ -265,9 +268,11 @@ def table_4(metrics_file, output_folder):
     result.to_csv(
         output_filepath, float_format='%.2f', index=False)
     table4_wb.save(output_filepath_excel)
+    return result
 
 
-def supplementary_table_1(metrics_file, output_folder):
+def supplementary_table_1(input_folder, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'supplementary_table1.csv')
     output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'supplementary_table1.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
@@ -288,9 +293,11 @@ def supplementary_table_1(metrics_file, output_folder):
     filtered_table5_data.to_csv(
         output_filepath, float_format='%.2f', index=False)
     table5_wb.save(output_filepath_excel)
+    return filtered_table5_data
 
 
-def supplementary_table_2(metrics_file, output_folder):
+def supplementary_table_2(input_folder, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'supplementary_table2.csv')
     output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'supplementary_table2.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
@@ -313,9 +320,12 @@ def supplementary_table_2(metrics_file, output_folder):
     filtered_table6_data.to_csv(
         output_filepath, float_format='%.2f', index=False)
     table6_wb.save(output_filepath_excel)
+    return filtered_table6_data
 
 
-def figure_1(output_folder, metrics_file):
+def figure_1(input_folder, debug=False):
+    rcParams.update(rcParamsDefault)
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
     rcParams['font.family'] = 'serif'
     rcParams['font.size'] = 12
     rcParams['font.serif'] = ['Times New Roman']
@@ -369,6 +379,7 @@ def figure_1(output_folder, metrics_file):
     # draw plots
     g, axes = plt.subplots(2, 2, figsize=(8, 8))
     sns.set_context("paper")
+    sns.set_style("white")
     for task, index in zip(['Posture', 'PA'], [0, 1]):
         sns.set(rc={"lines.linewidth": 0.8,
                     "font.family": ['serif'],
@@ -432,8 +443,12 @@ def figure_1(output_folder, metrics_file):
     # save associated table
     output_filepath = os.path.join(os.path.dirname(output_filepaths[0]), 'figure1.csv')
     line_plot_table.to_csv(output_filepath, index=False, float_format='%0.3f')
+    plt.close(fig=g)
+    return g
 
-def figure_2(prediction_set_file, confusion_matrix_file, input_folder, output_folder):
+def figure_2(input_folder, debug=False):
+    rcParams.update(rcParamsDefault)
+    output_folder, metrics_file, prediction_set_file, confusion_matrix_file = prepare_paths(input_folder, debug=debug)
     # prepare confusion matrix
     abbr_labels = get_pa_abbr_labels(input_folder)
     
@@ -483,9 +498,12 @@ def figure_2(prediction_set_file, confusion_matrix_file, input_folder, output_fo
     # save table
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'figure2.csv')
     result.to_csv(output_filepath, float_format='%.2f', index=False)
+    plt.close(fig=fig)
+    return fig
 
 
-def dataset_summary(input_folder, output_folder):
+def dataset_summary(input_folder, debug=False):
+    output_folder, _, _, _ = prepare_paths(input_folder, debug=debug)
     exception_file = os.path.join(input_folder, "DerivedCrossParticipants", 'pid_exceptions.csv')
     offset_mapping_file = os.path.join(input_folder, "DerivedCrossParticipants", 'offset_mapping.csv')
     orientation_correction_file = os.path.join(input_folder, 'DerivedCrossParticipants', 'orientation_corrections.csv')
@@ -532,8 +550,10 @@ def dataset_summary(input_folder, output_folder):
     activity_samples.to_csv(activity_samples_output, float_format='%.3f', index=True, header=True)
     ag_samples_output = os.path.join(output_folder, 'figures_and_tables', 'activity_group_samples_stats.csv')
     ag_samples.to_csv(ag_samples_output, float_format='%.3f', index=True, header=True)
+    return summary_df, activity_samples, ag_samples
 
-def numbers_in_abstract(metrics_file, output_folder):
+def numbers_in_abstract(input_folder, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
     summary = pd.read_csv(metrics_file)
     filter_condition = (summary.NUM_OF_SENSORS == 2) & (~summary.SENSOR_PLACEMENT.str.contains('W')) & (summary.FEATURE_TYPE == 'MO')
     two_non_wrist_models = summary.loc[filter_condition,:]
@@ -580,13 +600,9 @@ def numbers_in_abstract(metrics_file, output_folder):
     result = pd.DataFrame(result).transpose()
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'numbers_in_abstract.csv')
     result.to_csv(output_filepath, index=True, float_format='%.3f')
+    return result
 
-def main(input_folder, *, debug=False):
-    """Generate figures and tables used in the paper
-
-    :param input_folder: Folder path of input raw dataset
-    :param debug: Use this flag to output results to 'debug_run' folder
-    """
+def prepare_paths(input_folder, debug=False):
     input_folder = strip_path(input_folder)
     output_folder = generate_run_folder(input_folder, debug=debug)
     os.makedirs(output_folder, exist_ok=True)
@@ -595,15 +611,22 @@ def main(input_folder, *, debug=False):
         output_folder, 'predictions', 'DW_DT.MO.prediction.csv')
     figure_2_confusion_matrix = os.path.join(
         output_folder, 'confusion_matrices', 'DW_DT.MO.confusion_matrix.csv')
-    table_3(metrics_file, output_folder)
-    table_4(metrics_file, output_folder)
-    figure_1(output_folder, metrics_file)
-    figure_2(figure_2_predictions,
-             figure_2_confusion_matrix, input_folder, output_folder)
-    supplementary_table_1(metrics_file, output_folder)
-    supplementary_table_2(metrics_file, output_folder)
-    dataset_summary(input_folder, output_folder)
-    numbers_in_abstract(metrics_file, output_folder)
+    return output_folder, metrics_file, figure_2_predictions, figure_2_confusion_matrix
+
+def main(input_folder, *, debug=False):
+    """Generate figures and tables used in the paper
+
+    :param input_folder: Folder path of input raw dataset
+    :param debug: Use this flag to output results to 'debug_run' folder
+    """
+    table_3(input_folder, debug=debug)
+    table_4(input_folder, debug=debug)
+    figure_1(input_folder, debug=debug)
+    figure_2(input_folder, debug=debug)
+    supplementary_table_1(input_folder, debug=debug)
+    supplementary_table_2(input_folder, debug=debug)
+    dataset_summary(input_folder, debug=debug)
+    numbers_in_abstract(input_folder, debug=debug)
 
 if __name__ == '__main__':
     run(main)
