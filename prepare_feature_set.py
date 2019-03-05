@@ -102,7 +102,11 @@ def prepare_feature_set(input_folder,
                                      'feature_computation_workflow.pdf')
     result.to_csv(feature_filepath, float_format='%.9f', index=False)
     groupby.show_profiling(file_path=profiling_filepath)
-    groupby.visualize_workflow(filename=workflow_filepath)
+    try:
+        groupby.visualize_workflow(filename=workflow_filepath)
+    except Exception as e:
+        print(e)
+        print('skip generating workflow pdf')
 
 
 if __name__ == '__main__':

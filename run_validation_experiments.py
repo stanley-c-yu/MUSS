@@ -15,10 +15,14 @@ def run_all_experiments(dataset_folder, scheduler='processes'):
     os.makedirs(output_folder, exist_ok=True)
     validation_files = glob(os.path.join(dataset_folder, '*.dataset.csv'))
     experiments = ForLoop(validation_files, run_single_experiment)
-    experiments.show_workflow(
-        os.path.join(
-            os.path.dirname(output_folder),
-            'validation_experiment_workflow.pdf'))
+    try:
+        experiments.show_workflow(
+            os.path.join(
+                os.path.dirname(output_folder),
+                'validation_experiment_workflow.pdf'))
+    except Exception as e:
+        print(e)
+        print('skip generating workflow pdf')
     experiments.compute(scheduler=scheduler)
     experiments.show_profiling(
         os.path.join(

@@ -169,7 +169,11 @@ def main(input_folder, *, debug=False, scheduler='processes'):
         class_set_file=class_set_file,
         pids=pids,
         output_folder=output_folder)
-    experiment.show_workflow(workflow_filepath)
+    try:
+        experiment.show_workflow(workflow_filepath)
+    except Exception as e:
+        print(e)
+        print('skip generating workflow pdf')
     experiment.compute(scheduler=scheduler)
     experiment.show_profiling(profiling_filepath)
 

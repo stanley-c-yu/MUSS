@@ -25,6 +25,10 @@ header ul a strong {
     padding-top: 0.1em;
 }
 
+header p, footer p {
+  margin: 0 0 1em;
+} 
+
 @media print, screen and (max-width: 960px) {
 
     div.wrapper {

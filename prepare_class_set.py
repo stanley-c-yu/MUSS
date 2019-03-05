@@ -149,7 +149,11 @@ def prepare_class_set(input_folder, *, debug=False, scheduler='processes'):
                                      'classset_computation_workflow.pdf')
     class_set.to_csv(classset_filepath, index=True)
     groupby.show_profiling(file_path=profiling_filepath)
-    groupby.visualize_workflow(filename=workflow_filepath)
+    try:
+        groupby.visualize_workflow(filename=workflow_filepath)
+    except Exception as e:
+        print(e)
+        print('skip generating workflow pdf')
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ _source codes and data_
 
 In-submission.
 
-## Run using jupyter notebook
+## Run using jupyter notebook in your local runtime
 
 We provide a step by step guide in a jupyter notebook to reproduce the results and see the intermediate results.
 
@@ -41,6 +41,7 @@ We provide a step by step guide in a jupyter notebook to reproduce the results a
 2. `pipenv` package. Install using `pip install pipenv`
 3. `git` (optional)
 4. Recommend at least 8-core workstation, otherwise computation will be really slow
+5. [`graphviz`](https://www.graphviz.org/download/) (optional, required to generate workflow diagram pdf)
 
 ### Download source codes and data
 
