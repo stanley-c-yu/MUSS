@@ -13,9 +13,25 @@ _source codes and data_
 
 In-submission.
 
-## Run using Colab notebook
+## Run using jupyter notebook
 
-We provide a step by step guide on Google Colab to reproduce the results and see the intermediate results. Due to limited computing resources, if using Colab's hosted runtime environment, it takes very long time (2-3h) to finish the entire process. If you do not want to wait, you may set up your own local runtime according to [Colab's guidance](https://research.google.com/colaboratory/local-runtimes.html). The source codes are optimized to use parallel computing (based on `Dask` package) on multi-core machines. It is recommended to use at least 8-core (more the faster) workstation for this project.
+We provide a step by step guide in a jupyter notebook to reproduce the results and see the intermediate results.
+
+1. Make sure you follow the __dependencies__, __step 1__ and __step 2__ in [Run from a terminal in your local runtime](#run-from-a-terminal-in-your-local-runtime).
+
+2. Install jupyter notebook
+
+    ```bash
+    > pip install jupyter
+    ```
+
+3. Start jupyter notebook from the root folder of the code repository
+
+    ```bash
+    > jupyter notebook
+    ```
+
+4. Open `http://localhost:8888` in a browser and open `muss_guide.ipynb` and follow the guidance in the notebook.
 
 ## Run from a terminal in your local runtime
 
@@ -24,6 +40,7 @@ We provide a step by step guide on Google Colab to reproduce the results and see
 1. Python 3.6.5 or above
 2. `pipenv` package. Install using `pip install pipenv`
 3. `git` (optional)
+4. Recommend at least 8-core workstation, otherwise computation will be really slow
 
 ### Download source codes and data
 

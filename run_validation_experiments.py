@@ -17,12 +17,12 @@ def run_all_experiments(dataset_folder, scheduler='processes'):
     experiments = ForLoop(validation_files, run_single_experiment)
     experiments.show_workflow(
         os.path.join(
-            os.path.dirname(output_folder), 'logs',
+            os.path.dirname(output_folder),
             'validation_experiment_workflow.pdf'))
     experiments.compute(scheduler=scheduler)
     experiments.show_profiling(
         os.path.join(
-            os.path.dirname(output_folder), 'logs',
+            os.path.dirname(output_folder),
             'validation_experiment_profiling.html'))
     prediction_sets = experiments.get_result()
     # save_prediction_sets(prediction_sets)
@@ -100,7 +100,6 @@ def main(input_folder, *, debug=False, scheduler='processes'):
     output_folder = generate_run_folder(input_folder, debug=debug)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder, exist_ok=True)
-    os.makedirs(os.path.join(output_folder, 'logs'), exist_ok=True)
     dataset_folder = os.path.join(output_folder, 'datasets')
     run_all_experiments(dataset_folder, scheduler=scheduler)
 
