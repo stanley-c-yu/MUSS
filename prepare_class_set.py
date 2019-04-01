@@ -85,6 +85,8 @@ def convert_annotations(df, **kwargs):
     labels = ' '.join(labels).lower().replace('wear on', '').replace(
         'wearon', '').strip()
 
+    n_class_types = class_map.shape[1] - 1
+
     # filter if it does not cover the entire 12.8s
     df_durations = df.groupby(df.columns[3]).apply(
         lambda rows: np.sum(rows.iloc[:, 2] - rows.iloc[:, 1]))
@@ -93,7 +95,7 @@ def convert_annotations(df, **kwargs):
         matched_classes = class_map.loc[class_map['ANNOTATION_LABELS'] ==
                                         'empty', :]
         matched_classes = pd.DataFrame(
-            data=[[labels] + ['Transition'] * 5],
+            data=[[labels] + ['Transition'] * n_class_types],
             columns=matched_classes.columns,
             index=[0])
         return matched_classes
@@ -103,7 +105,7 @@ def convert_annotations(df, **kwargs):
 
     if matched_classes.empty:
         matched_classes = pd.DataFrame(
-            data=[[labels] + ['Unknown'] * 5],
+            data=[[labels] + ['Unknown'] * n_class_types],
             columns=matched_classes.columns,
             index=[0])
     return matched_classes
