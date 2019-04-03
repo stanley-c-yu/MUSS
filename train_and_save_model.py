@@ -81,4 +81,5 @@ def save_model(model_path, target, model, scaler, training_accuracy,
 
 if __name__ == '__main__':
     # run(main)
+    main('D:/data/muss_data/', True, 'MO', 'DW', 'DA', 'DT')
     main('D:/data/muss_data/', True, 'MO', 'DW', 'DA')

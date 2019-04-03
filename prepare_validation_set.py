@@ -20,16 +20,7 @@ def merge_placements(left_set, right_set):
     right_set.loc[:, 'SENSOR_PLACEMENT'] = left_p + '_' + right_p
     left_set.loc[:, 'SID'] = left_s + '_' + right_s
     right_set.loc[:, 'SID'] = left_s + '_' + right_s
-    if '_' in left_p:
-        left_suffix = ''
-    else:
-        left_suffix = '_' + left_p
-    joined_feature_set = pd.merge(
-        left_set,
-        right_set,
-        how='outer',
-        on=on,
-        suffixes=[left_suffix, '_' + right_p])
+    joined_feature_set = pd.merge(left_set, right_set, how='outer', on=on)
     return joined_feature_set
 
 
@@ -42,10 +33,19 @@ def merge_feature_and_class(left_set, right_set):
 
 @delayed
 def merge_all_placements(feature_set, sensor_placements):
+    non_feature_columns = [
+        'START_TIME', 'STOP_TIME', 'PID', 'SID', 'SENSOR_PLACEMENT'
+    ]
     placement_sets = []
     for placement in sensor_placements:
-        placement_sets.append(
-            feature_set.loc[feature_set['SENSOR_PLACEMENT'] == placement, :])
+        placement_set = feature_set.loc[feature_set['SENSOR_PLACEMENT'] ==
+                                        placement, :]
+        placement_set.set_index(non_feature_columns, inplace=True)
+        feature_columns = placement_set.columns
+        feature_columns = [col + '_' + placement for col in feature_columns]
+        placement_set.columns = feature_columns
+        placement_set.reset_index(drop=False, inplace=True)
+        placement_sets.append(placement_set)
     return reduce(merge_placements, placement_sets)
 
 
@@ -180,3 +180,4 @@ def main(input_folder, *, debug=False, scheduler='processes'):
 
 if __name__ == '__main__':
     run(main)
+    # main('D:/data/muss_data/', debug=True, scheduler='sync')
