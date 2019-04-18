@@ -33,8 +33,8 @@ def train_and_save_model(dataset_folder, sites=['DW', 'DA'], feature_set='MO'):
         dataset = pd.read_csv(
             selected_file, parse_dates=[0, 1], infer_datetime_format=True)
         targets = [
-            'POSTURE', 'ACTIVITY', 'CLASSIC_SEVEN_ACTIVITIES',
-            'SEDENTARY_AMBULATION_CYCLING'
+            'POSTURE', 'ACTIVITY', 'THIRTEEN_ACTIVITIES',
+            'CLASSIC_SEVEN_ACTIVITIES', 'SEDENTARY_AMBULATION_CYCLING'
         ]
         for target in targets:
             model_path = os.path.join(
@@ -52,8 +52,9 @@ def train_model(dataset, target):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
         "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "ACTIVITY",
-        "POSTURE", "ACTIVITY_GROUP", "CLASSIC_SEVEN_ACTIVITIES",
-        "SEDENTARY_AMBULATION_CYCLING", 'ACTIVITY_ABBR'
+        "POSTURE", "ACTIVITY_GROUP", "THIRTEEN_ACTIVITIES",
+        "CLASSIC_SEVEN_ACTIVITIES", "SEDENTARY_AMBULATION_CYCLING",
+        'ACTIVITY_ABBR'
     ]
     placements = dataset['SENSOR_PLACEMENT'].values[0]
     feature_type = dataset['FEATURE_TYPE'].values[0]
