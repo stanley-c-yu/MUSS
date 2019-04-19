@@ -7,14 +7,68 @@ import pickle
 from clize import run
 
 
-def main(input_folder, debug, feature_set, *sites):
+def main(input_folder,
+         *,
+         debug=False,
+         targets='ACTIVITY,POSTURE',
+         feature_set='MO',
+         sites='DW,DA'):
+    """Train and save a model using one of the validation datasets
+
+    :param input_folder: Folder path of input raw dataset.
+    :param debug: Use this flag to output results to 'debug_run' folder.
+    :param targets: The list of groups of class labels, separated by ','.       
+    
+                Allowed targets:
+                'ACTIVITY': 22-class activity labels;
+                'POSTURE': 3-class posture labels;
+                'SEDENTARY_AMBULATION_CYCLING': 4-class labels (see Mannini 2010);
+                'THIRTEEN_ACTIVITIES': used for the interactive system.
+
+    :param feature_set: Choose the type of feature set to be used.
+
+                Allowed feature sets:
+                'MO': use 'motion + orientation' features;
+                'M': use 'motion" features;
+                'O': use 'orientation' features.
+    :param sites: String of list of placements of sensors, separated by ','.
+    
+                Allowed placement codes,
+                'DW': dominant wrist;
+                'DA': dominant ankle;
+                'DT': dominant thigh;
+                'DH': dominant hip;
+                'NDW': nondominant wrist;
+                'NDA': nondominant ankle;
+                'NDH': nondominant hip.
+    """
     run_folder = generate_run_folder(input_folder, debug=debug)
     dataset_folder = os.path.join(run_folder, 'datasets')
-    sites = list(sites)
+    sites = sites.split(',')
+    targets = targets.split(',')
+    predefined_targets = [
+        'POSTURE', 'ACTIVITY', 'THIRTEEN_ACTIVITIES',
+        'CLASSIC_SEVEN_ACTIVITIES', 'SEDENTARY_AMBULATION_CYCLING'
+    ]
+    predefined_sites = ['DW', 'DA', 'DT', 'DH', 'NDW', 'NDA', 'NDH']
+    if feature_set not in ['MO', 'O', 'M']:
+        raise Exception(
+            "Input parameter 'feature_set' should be one of 'MO', 'O' or 'M'.")
+    for site in sites:
+        if site not in predefined_sites:
+            raise Exception("Input parameter 'sites' should be one of " +
+                            ','.join(predefined_sites))
+    for target in targets:
+        if target not in predefined_targets:
+            raise Exception("Input parameter 'targets' should be one of " +
+                            ','.join(predefined_targets))
     train_and_save_model(dataset_folder, sites=sites, feature_set=feature_set)
 
 
-def train_and_save_model(dataset_folder, sites=['DW', 'DA'], feature_set='MO'):
+def train_and_save_model(dataset_folder,
+                         targets=['ACTIVITY', 'POSTURE'],
+                         sites=['DW', 'DA'],
+                         feature_set='MO'):
     validation_set_files = glob.glob(
         os.path.join(dataset_folder, '*.dataset.csv'), recursive=True)
     selected_file = None
@@ -32,10 +86,6 @@ def train_and_save_model(dataset_folder, sites=['DW', 'DA'], feature_set='MO'):
     if selected_file:
         dataset = pd.read_csv(
             selected_file, parse_dates=[0, 1], infer_datetime_format=True)
-        targets = [
-            'POSTURE', 'ACTIVITY', 'THIRTEEN_ACTIVITIES',
-            'CLASSIC_SEVEN_ACTIVITIES', 'SEDENTARY_AMBULATION_CYCLING'
-        ]
         for target in targets:
             model_path = os.path.join(
                 model_folder,
@@ -81,6 +131,4 @@ def save_model(model_path, target, model, scaler, training_accuracy,
 
 
 if __name__ == '__main__':
-    # run(main)
-    main('D:/data/muss_data/', True, 'MO', 'DW', 'DA', 'DT')
-    main('D:/data/muss_data/', True, 'MO', 'DW', 'DA')
+    run(main)

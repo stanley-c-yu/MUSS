@@ -34,14 +34,16 @@
 
             <p class="view"><strong><a href='#citation'>Citation</a></strong></p>
 
-            <p class="view"><strong>Run on MyBinder.org</strong></p>
+            <p class="view"><strong>Replicate results on MyBinder.org</strong></p>
             <a href="https://mybinder.org/v2/gh/qutang/MUSS/master"><img src="https://mybinder.org/badge_logo.svg"
                     alt="Binder"></a>
             <p class='view'>You may use mybinder.org for a quick interactive start (a jupyter notebook guide). All
                 dependencies are built, but be
                 careful that the process could be slow due to limited resources provided by the cloud server.</p>
 
-            <p class="view"><strong><a href='#run-using-jupyter-notebook-in-your-local-runtime'>Run using jupyter
+            <p class="view"><strong><a href='#replicate-results-using-jupyter-notebook-in-your-local-runtime'>Replicate
+                        results using
+                        jupyter
                         notebook in your local runtime</a></strong>
             </p>
 
@@ -49,11 +51,18 @@
                 jupyter notebook guidance in your local runtime environment.
             </p>
 
-            <p class="view"><strong><a href='#run-from-a-terminal-in-your-local-runtime'>Run from a terminal in your
+            <p class="view"><strong><a href='#replicate-results-from-a-terminal-in-your-local-runtime'>Replicate results
+                        from a
+                        terminal in your
                         local
                         runtime</a></strong></p>
             <p class="view">You may also follow the instruction on the right to download data and code to run locally.
             </p>
+
+            <p class="view"><strong><a href='#run-model-on-your-own-data'>Train a model and use it on your own
+                        data</a></strong>
+            </p>
+
             {% if site.show_downloads %}
             <ul class="downloads">
                 <li><a href="{{ site.github.data_url }}">Download <strong>MUSS data</strong></a></li>
@@ -62,18 +71,24 @@
             </ul>
             {% endif %}
         </header>
+
         <section>
 
             {{ content }}
 
+            <div class="footer">
+                {% if site.github.is_project_page %}
+                <p>This project is maintained by <a href="{{ site.github.owner_url }}">{{ site.github.owner_name }}</a>
+                </p>
+                {% endif %}
+                <p><small>Hosted on GitHub Pages &mdash; Modified theme based on <a
+                            href="https://github.com/pages-themes/minimal">minimal</a></small></p>
+            </div>
+
+
+
         </section>
-        <footer>
-            {% if site.github.is_project_page %}
-            <p>This project is maintained by <a href="{{ site.github.owner_url }}">{{ site.github.owner_name }}</a></p>
-            {% endif %}
-            <p><small>Hosted on GitHub Pages &mdash; Modified theme based on <a
-                        href="https://github.com/pages-themes/minimal">minimal</a></small></p>
-        </footer>
+
     </div>
     <script src="{{ "/assets/js/scale.fix.js" | relative_url }}"></script>
     {% if site.google_analytics %}

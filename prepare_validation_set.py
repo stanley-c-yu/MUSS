@@ -103,9 +103,9 @@ def save_validation_set(joined_set, sensor_placements, feature_type,
 
 
 def prepare_dataset(input_bundles,
-                    feature_set_file,
-                    class_set_file,
                     pids,
+                    feature_set_file,
+                    class_set_file=None,
                     output_folder=None,
                     **kwargs):
 
@@ -116,8 +116,9 @@ def prepare_dataset(input_bundles,
     feature_set = delayed(pd.read_csv)(
         feature_set_file, parse_dates=[0, 1], infer_datetime_format=True)
 
-    class_set = delayed(pd.read_csv)(
-        class_set_file, parse_dates=[0, 1], infer_datetime_format=True)
+    if class_set_file is not None:
+        class_set = delayed(pd.read_csv)(
+            class_set_file, parse_dates=[0, 1], infer_datetime_format=True)
 
     joined_feature_set = merge_all_placements(feature_set, sensor_placements)
 
@@ -126,10 +127,12 @@ def prepare_dataset(input_bundles,
 
     filtered_bundle = filter_by_pids(filtered_feature_set, class_set, pids)
 
-    joined_set = merge_joined_feature_and_class(filtered_bundle)
-
-    joined_set = filter_by_class_labels(joined_set, ['Transition', 'Unknown'],
-                                        'ACTIVITY')
+    if class_set_file is not None:
+        joined_set = merge_joined_feature_and_class(filtered_bundle)
+        joined_set = filter_by_class_labels(
+            joined_set, ['Transition', 'Unknown'], 'ACTIVITY')
+    else:
+        joined_set = filtered_bundle
 
     return save_validation_set(joined_set, sensor_placements, feature_type,
                                os.path.join(output_folder, 'datasets'))
@@ -150,6 +153,8 @@ def main(input_folder, *, debug=False, scheduler='processes'):
         os.makedirs(output_folder)
     feature_set_file = os.path.join(output_folder, 'muss.feature.csv')
     class_set_file = os.path.join(output_folder, 'muss.class.csv')
+    if not os.path.exists(class_set_file):
+        class_set_file = None
     profiling_filepath = os.path.join(output_folder,
                                       'dataset_computation_profiling.html')
     workflow_filepath = os.path.join(output_folder,

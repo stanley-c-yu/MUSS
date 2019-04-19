@@ -4,8 +4,7 @@
 @import "{{ site.theme }}";
 
 header {
-    width: 30%;
-    max-height: 100vh;
+    width: 32.5%;
     overflow-y: auto;
 }
 
@@ -14,7 +13,7 @@ section {
 }
 
 .wrapper {
-    width: 90%
+    width: 100%;
 }
 
 #author_url {
@@ -28,6 +27,10 @@ header ul a strong {
 header p, footer p {
   margin: 0 0 1em;
 } 
+
+.footer {
+  float: right;
+}
 
 @media print, screen and (max-width: 960px) {
 
@@ -104,7 +107,7 @@ header p, footer p {
     }
   }
 
-  @media (max-height: 899px) {
+  @media (max-height: 940px) {
 
     header h1 {
         margin-bottom: 0.8em;
@@ -135,7 +138,7 @@ header p, footer p {
     }
 }
 
-@media (max-height: 600px) {
+@media (max-height: 730px) {
 
     header h1 {
         font-size: 18px;
