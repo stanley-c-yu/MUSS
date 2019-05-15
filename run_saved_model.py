@@ -23,6 +23,7 @@ def run_saved_model_on_new_dataset(input_folder,
     dataset_path = os.path.join(output_folder, 'datasets', dataset_file)
     feature_df = pd.read_csv(
         dataset_path, parse_dates=[0, 1], infer_datetime_format=True)
+    feature_df = feature_df.dropna()
     indexed_feature_df = feature_df.set_index([
         'START_TIME', 'STOP_TIME', 'PID', 'SID', 'SENSOR_PLACEMENT',
         'FEATURE_TYPE'
@@ -39,13 +40,12 @@ def run_saved_model_on_new_dataset(input_folder,
             scaled_X = model_bundle['scaler'].transform(X)
             predicted_labels = model_bundle['model'].predict(scaled_X)
         except:
-            predicted_labels = len(X.shape[0]) * [np.nan]
+            predicted_labels = X.shape[0] * [np.nan]
         p_df['PREDICTION'] = predicted_labels
     result_path = os.path.join(
         result_folder,
         dataset_file.replace('dataset.csv',
                              name.lower() + '_prediction.csv'))
-    print(p_df)
     p_df.to_csv(result_path, index=False)
     print('Saved ' + result_path)
 
