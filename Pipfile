@@ -21,7 +21,7 @@ pylint = "<2.0.0"
 "autopep8" = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3"
 
 [pipenv]
 allow_prereleases = true

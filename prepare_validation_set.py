@@ -40,24 +40,34 @@ def merge_all_placements(feature_set, sensor_placements):
     for placement in sensor_placements:
         placement_set = feature_set.loc[feature_set['SENSOR_PLACEMENT'] ==
                                         placement, :]
+        if placement_set.empty:
+            continue
         placement_set.set_index(non_feature_columns, inplace=True)
         feature_columns = placement_set.columns
         feature_columns = [col + '_' + placement for col in feature_columns]
         placement_set.columns = feature_columns
         placement_set.reset_index(drop=False, inplace=True)
         placement_sets.append(placement_set)
-    return reduce(merge_placements, placement_sets)
+    if len(placement_sets) == 0:
+        return None
+    else:
+        return reduce(merge_placements, placement_sets)
 
 
 @delayed
-def filter_by_pids(feature_set, class_set, pids):
+def filter_by_pids(feature_set, pids, class_set=None):
+    if feature_set is None:
+        return (feature_set, class_set)
     feature_set = feature_set.loc[feature_set['PID'].isin(pids), :]
-    class_set = class_set.loc[class_set['PID'].isin(pids), :]
+    if class_set is not None:
+        class_set = class_set.loc[class_set['PID'].isin(pids), :]
     return (feature_set, class_set)
 
 
 @delayed
 def filter_by_feature_type(feature_set, feature_type):
+    if feature_set is None:
+        return None
     feature_cols = feature_set.columns.values[5:].tolist()
     if feature_type == 'M':
         feature_cols = list(
@@ -74,20 +84,30 @@ def filter_by_feature_type(feature_set, feature_type):
 def merge_joined_feature_and_class(bundle):
     feature_set = bundle[0]
     class_set = bundle[1]
-    joined_set = feature_set.groupby('PID').apply(merge_feature_and_class,
-                                                  class_set)
-    return joined_set
-
+    if feature_set is not None and class_set is None:
+        return feature_set
+    elif feature_set is None:
+        return None
+    else:
+        joined_set = feature_set.groupby('PID').apply(merge_feature_and_class,
+                                                    class_set)
+        return joined_set
 
 @delayed
 def filter_by_class_labels(joined_set, exclude_labels, class_name):
-    return joined_set.loc[np.logical_not(joined_set[class_name].
+    if joined_set is None:
+        return None
+    elif class_name in joined_set:
+        return joined_set.loc[np.logical_not(joined_set[class_name].
                                          isin(exclude_labels)), :]
-
+    else:
+        return joined_set
 
 @delayed
 def save_validation_set(joined_set, sensor_placements, feature_type,
                         output_folder):
+    if joined_set is None:
+        return {}
     os.makedirs(output_folder, exist_ok=True)
     output_filepath = os.path.join(
         output_folder,
@@ -119,20 +139,20 @@ def prepare_dataset(input_bundles,
     if class_set_file is not None:
         class_set = delayed(pd.read_csv)(
             class_set_file, parse_dates=[0, 1], infer_datetime_format=True)
+    else:
+        class_set = None
 
     joined_feature_set = merge_all_placements(feature_set, sensor_placements)
 
     filtered_feature_set = filter_by_feature_type(joined_feature_set,
                                                   feature_type)
 
-    filtered_bundle = filter_by_pids(filtered_feature_set, class_set, pids)
+    filtered_bundle = filter_by_pids(filtered_feature_set, pids, class_set)
 
-    if class_set_file is not None:
-        joined_set = merge_joined_feature_and_class(filtered_bundle)
-        joined_set = filter_by_class_labels(
-            joined_set, ['Transition', 'Unknown'], 'ACTIVITY')
-    else:
-        joined_set = filtered_bundle
+    joined_set = merge_joined_feature_and_class(filtered_bundle)
+    joined_set = filter_by_class_labels(
+        joined_set, ['Transition', 'Unknown'], 'ACTIVITY')
+
 
     return save_validation_set(joined_set, sensor_placements, feature_type,
                                os.path.join(output_folder, 'datasets'))
@@ -185,4 +205,4 @@ def main(input_folder, *, debug=False, scheduler='processes'):
 
 if __name__ == '__main__':
     run(main)
-    # main('D:/data/muss_data/', debug=True, scheduler='sync')
+    # main('D:/data/MDCAS/', debug=False, scheduler='sync')
