@@ -76,7 +76,7 @@ def run_loso(validation_set, target):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
         "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "ACTIVITY",
-        "POSTURE", "ACTIVITY_GROUP", "CLASSIC_SEVEN_ACTIVITIES",
+        "POSTURE", "ACTIVITY_GROUP", "THIRTEEN_ACTIVITIES", "CLASSIC_SEVEN_ACTIVITIES",
         "SEDENTARY_AMBULATION_CYCLING", 'ACTIVITY_ABBR'
     ]
     placements = validation_set['SENSOR_PLACEMENT'].values[0]

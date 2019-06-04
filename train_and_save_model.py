@@ -5,12 +5,13 @@ from helper.utils import generate_run_folder
 import os
 import pickle
 from clize import run
+import numpy as np
 
 
 def main(input_folder,
          *,
          debug=False,
-         targets='ACTIVITY,POSTURE',
+         targets='ACTIVITY,POSTURE,THIRTEEN_ACTIVITIES',
          feature_set='MO',
          sites='DW,DA'):
     """Train and save a model using one of the validation datasets
@@ -18,7 +19,7 @@ def main(input_folder,
     :param input_folder: Folder path of input raw dataset.
     :param debug: Use this flag to output results to 'debug_run' folder.
     :param targets: The list of groups of class labels, separated by ','.       
-    
+
                 Allowed targets:
                 'ACTIVITY': 22-class activity labels;
                 'POSTURE': 3-class posture labels;
@@ -32,7 +33,7 @@ def main(input_folder,
                 'M': use 'motion" features;
                 'O': use 'orientation' features.
     :param sites: String of list of placements of sensors, separated by ','.
-    
+
                 Allowed placement codes,
                 'DW': dominant wrist;
                 'DA': dominant ankle;
@@ -62,7 +63,8 @@ def main(input_folder,
         if target not in predefined_targets:
             raise Exception("Input parameter 'targets' should be one of " +
                             ','.join(predefined_targets))
-    train_and_save_model(dataset_folder, sites=sites, feature_set=feature_set)
+    train_and_save_model(dataset_folder, sites=sites,
+                         feature_set=feature_set, targets=targets)
 
 
 def train_and_save_model(dataset_folder,
@@ -108,6 +110,9 @@ def train_model(dataset, target):
     ]
     placements = dataset['SENSOR_PLACEMENT'].values[0]
     feature_type = dataset['FEATURE_TYPE'].values[0]
+    exclude_labels = ['Unknown', 'Transition']
+    dataset = dataset.loc[np.logical_not(dataset[target].
+                                         isin(exclude_labels)), :]
     y = dataset[target].values
     indexed_dataset = dataset.set_index(index_cols)
     X = indexed_dataset.values
@@ -131,4 +136,5 @@ def save_model(model_path, target, model, scaler, training_accuracy,
 
 
 if __name__ == '__main__':
+    # main(input_folder='D:/data/muss_data/', debug=True)
     run(main)
