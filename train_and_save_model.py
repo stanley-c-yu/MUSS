@@ -11,14 +11,14 @@ import numpy as np
 def main(input_folder,
          *,
          debug=False,
-         targets='ACTIVITY,POSTURE,THIRTEEN_ACTIVITIES',
+         targets='ACTIVITY,POSTURE,ACTIVITY_GROUP,THIRTEEN_ACTIVITIES',
          feature_set='MO',
          sites='DW,DA'):
     """Train and save a model using one of the validation datasets
 
     :param input_folder: Folder path of input raw dataset.
     :param debug: Use this flag to output results to 'debug_run' folder.
-    :param targets: The list of groups of class labels, separated by ','.       
+    :param targets: The list of groups of class labels, separated by ','.
 
                 Allowed targets:
                 'ACTIVITY': 22-class activity labels;
@@ -49,7 +49,7 @@ def main(input_folder,
     targets = targets.split(',')
     predefined_targets = [
         'POSTURE', 'ACTIVITY', 'THIRTEEN_ACTIVITIES',
-        'CLASSIC_SEVEN_ACTIVITIES', 'SEDENTARY_AMBULATION_CYCLING'
+        'ACTIVITY_GROUP', 'SEDENTARY_AMBULATION_CYCLING'
     ]
     predefined_sites = ['DW', 'DA', 'DT', 'DH', 'NDW', 'NDA', 'NDH']
     if feature_set not in ['MO', 'O', 'M']:
@@ -63,14 +63,23 @@ def main(input_folder,
         if target not in predefined_targets:
             raise Exception("Input parameter 'targets' should be one of " +
                             ','.join(predefined_targets))
+    class_mapping = grouping_file(input_folder)
     train_and_save_model(dataset_folder, sites=sites,
-                         feature_set=feature_set, targets=targets)
+                         feature_set=feature_set, targets=targets, class_mapping=class_mapping)
+
+
+def grouping_file(input_folder):
+    class_label_set = os.path.join(input_folder, 'DerivedCrossParticipants',
+                                   'muss_class_labels.csv')
+    class_mapping = pd.read_csv(class_label_set)
+    return class_mapping
 
 
 def train_and_save_model(dataset_folder,
                          targets=['ACTIVITY', 'POSTURE'],
                          sites=['DW', 'DA'],
-                         feature_set='MO'):
+                         feature_set='MO',
+                         class_mapping=None):
     validation_set_files = glob.glob(
         os.path.join(dataset_folder, '*.dataset.csv'), recursive=True)
     selected_file = None
@@ -94,13 +103,21 @@ def train_and_save_model(dataset_folder,
                 os.path.basename(selected_file).replace(
                     'dataset',
                     target.lower() + '_model').replace('csv', 'pkl'))
+
             model, scaler, training_accuracy, feature_order = train_model(
-                dataset, target)
+                dataset, get_train_target(target))
             save_model(model_path, target, model, scaler, training_accuracy,
-                       feature_order)
+                       feature_order, class_mapping)
 
 
-def train_model(dataset, target):
+def get_train_target(target):
+    if target == 'ACTIVITY' or target == 'POSTURE':
+        return target
+    else:
+        return 'ACTIVITY'
+
+
+def train_model(dataset, train_target):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
         "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "ACTIVITY",
@@ -111,9 +128,9 @@ def train_model(dataset, target):
     placements = dataset['SENSOR_PLACEMENT'].values[0]
     feature_type = dataset['FEATURE_TYPE'].values[0]
     exclude_labels = ['Unknown', 'Transition']
-    dataset = dataset.loc[np.logical_not(dataset[target].
+    dataset = dataset.loc[np.logical_not(dataset[train_target].
                                          isin(exclude_labels)), :]
-    y = dataset[target].values
+    y = dataset[train_target].values
     indexed_dataset = dataset.set_index(index_cols)
     X = indexed_dataset.values
     feature_order = list(indexed_dataset.columns)
@@ -122,19 +139,20 @@ def train_model(dataset, target):
 
 
 def save_model(model_path, target, model, scaler, training_accuracy,
-               feature_order):
+               feature_order, class_mapping):
     model_bundle = {
         'model_file': os.path.basename(model_path),
         'name': target,
         'model': model,
         'scaler': scaler,
         'training_accuracy': training_accuracy,
-        'feature_order': feature_order
+        'feature_order': feature_order,
+        'class_mapping': class_mapping
     }
     with open(model_path, 'wb') as f:
         pickle.dump(model_bundle, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
-    # main(input_folder='D:/data/muss_data/', debug=True)
+    # main(input_folder='D:/data/muss_data/', debug=True, sites='DW')
     run(main)
