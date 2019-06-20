@@ -49,7 +49,7 @@ def main(input_folder,
     targets = targets.split(',')
     predefined_targets = [
         'POSTURE', 'ACTIVITY', 'THIRTEEN_ACTIVITIES',
-        'ACTIVITY_GROUP', 'SEDENTARY_AMBULATION_CYCLING'
+        'ACTIVITY_GROUP', 'SEDENTARY_AMBULATION_CYCLING', 'MDCAS'
     ]
     predefined_sites = ['DW', 'DA', 'DT', 'DH', 'NDW', 'NDA', 'NDH']
     if feature_set not in ['MO', 'O', 'M']:
@@ -111,7 +111,7 @@ def train_and_save_model(dataset_folder,
 
 
 def get_train_target(target):
-    if target == 'ACTIVITY' or target == 'POSTURE':
+    if target == 'ACTIVITY' or target == 'POSTURE' or target == 'MDCAS':
         return target
     else:
         return 'ACTIVITY'
@@ -121,12 +121,10 @@ def train_model(dataset, train_target):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
         "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "ACTIVITY",
-        "POSTURE", "ACTIVITY_GROUP", "THIRTEEN_ACTIVITIES",
+        "POSTURE", "ACTIVITY_GROUP", "MDCAS", "THIRTEEN_ACTIVITIES",
         "CLASSIC_SEVEN_ACTIVITIES", "SEDENTARY_AMBULATION_CYCLING",
         'ACTIVITY_ABBR'
     ]
-    placements = dataset['SENSOR_PLACEMENT'].values[0]
-    feature_type = dataset['FEATURE_TYPE'].values[0]
     exclude_labels = ['Unknown', 'Transition']
     dataset = dataset.loc[np.logical_not(dataset[train_target].
                                          isin(exclude_labels)), :]
@@ -154,5 +152,6 @@ def save_model(model_path, target, model, scaler, training_accuracy,
 
 
 if __name__ == '__main__':
-    # main(input_folder='D:/data/muss_data/', debug=True, sites='DW')
+    # main(input_folder='D:/data/muss_data/',
+    #      debug=True, sites='DW', targets='MDCAS')
     run(main)

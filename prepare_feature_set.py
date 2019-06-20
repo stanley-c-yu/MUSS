@@ -80,7 +80,8 @@ def prepare_feature_set(input_folder,
 
     groupby.apply(load_data)
 
-    groupby.apply(compute_features, interval=12.8, step=12.8, sr=sampling_rate)
+    groupby.apply(compute_features, interval=12.8,
+                  step=12.8, sr=sampling_rate)
 
     groupby.final_join(delayed(join_as_dataframe))
 
@@ -110,15 +111,8 @@ def prepare_feature_set(input_folder,
 
 
 if __name__ == '__main__':
-    # input_folder = os.path.join(
-    #     os.path.expanduser('~'), 'Projects/data/spades_lab')
-    # input_folder = 'D:/data/mini_mhealth_dataset_cleaned'
-    # # input_folder = 'D:/data/spades_lab'
-    # sampling_rate = 80
-    # scheduler = 'processes'
-    # print(input_folder)
     # prepare_feature_set(
-    #     input_folder,
-    #     sampling_rate=sampling_rate,
-    #     scheduler=scheduler)
+    #     'D:/data/muss_data/',
+    #     sampling_rate=80,
+    #     scheduler='processes', debug=True)
     run(prepare_feature_set)

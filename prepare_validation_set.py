@@ -8,6 +8,7 @@ from padar_parallel.for_loop import ForLoop
 from dask import delayed
 from helper import utils
 from clize import run
+from sklearn.utils import shuffle
 
 
 def merge_placements(left_set, right_set):
@@ -90,8 +91,9 @@ def merge_joined_feature_and_class(bundle):
         return None
     else:
         joined_set = feature_set.groupby('PID').apply(merge_feature_and_class,
-                                                    class_set)
+                                                      class_set)
         return joined_set
+
 
 @delayed
 def filter_by_class_labels(joined_set, exclude_labels, class_name):
@@ -99,9 +101,10 @@ def filter_by_class_labels(joined_set, exclude_labels, class_name):
         return None
     elif class_name in joined_set:
         return joined_set.loc[np.logical_not(joined_set[class_name].
-                                         isin(exclude_labels)), :]
+                                             isin(exclude_labels)), :]
     else:
         return joined_set
+
 
 @delayed
 def save_validation_set(joined_set, sensor_placements, feature_type,
@@ -122,11 +125,32 @@ def save_validation_set(joined_set, sensor_placements, feature_type,
     return joined_set
 
 
+@delayed
+def distribute_nonwear_to_pids(nonwear_set, pids):
+    shuffled_nonwear_set = shuffle(nonwear_set)
+    n_samples = nonwear_set.shape[0]
+    n_pids = len(pids)
+    n_samples_per_pid = int(np.floor(float(n_samples) / n_pids))
+    for i in range(0, n_pids):
+        start_index = 0 + i * n_samples_per_pid
+        stop_index = n_samples_per_pid * (i + 1)
+
+        shuffled_nonwear_set.iloc[start_index:stop_index, 2] = pids[i]
+    for i in range(stop_index, n_samples):
+        shuffled_nonwear_set.iloc[i:(i + 1), 2] = pids[i - stop_index]
+    return shuffled_nonwear_set
+
+
+def set_nonwear_classes(joined_set):
+    return joined_set.fillna(value='Nonwear')
+
+
 def prepare_dataset(input_bundles,
                     pids,
                     feature_set_file,
                     class_set_file=None,
                     output_folder=None,
+                    nonwear_set_file=None,
                     **kwargs):
 
     sensor_placements = input_bundles[0]
@@ -142,6 +166,13 @@ def prepare_dataset(input_bundles,
     else:
         class_set = None
 
+    if nonwear_set_file is not None:
+        nonwear_set = delayed(pd.read_csv)(
+            nonwear_set_file, parse_dates=[0, 1]
+        )
+    else:
+        nonwear_set = None
+
     joined_feature_set = merge_all_placements(feature_set, sensor_placements)
 
     filtered_feature_set = filter_by_feature_type(joined_feature_set,
@@ -153,12 +184,16 @@ def prepare_dataset(input_bundles,
     joined_set = filter_by_class_labels(
         joined_set, ['Transition', 'Unknown'], 'ACTIVITY')
 
+    if nonwear_set is not None:
+        distributed_nonwear_set = distribute_nonwear_to_pids(nonwear_set, pids)
+        joined_set = delayed(pd.concat)([joined_set, distributed_nonwear_set])
+        joined_set = set_nonwear_classes(joined_set)
 
     return save_validation_set(joined_set, sensor_placements, feature_type,
                                os.path.join(output_folder, 'datasets'))
 
 
-def main(input_folder, *, debug=False, scheduler='processes'):
+def main(input_folder, *, sites=None, feature_types=None, include_nonwear=False, debug=False, scheduler='processes'):
     """Prepare validation sets
 
     :param input_folder: Folder path of input raw dataset
@@ -181,17 +216,28 @@ def main(input_folder, *, debug=False, scheduler='processes'):
                                      'dataset_computation_workflow.pdf')
 
     pids = dataset.get_pids(input_folder)
-    placements = ['DW', 'NDW', 'DA', 'NDA', 'DH', 'NDH', 'DT']
-    feature_types = ['M', 'O', 'MO']
+    if sites is None or feature_types is None:
+        placements = ['DW', 'NDW', 'DA', 'NDA', 'DH', 'NDH', 'DT']
+        feature_types = ['M', 'O', 'MO']
+    else:
+        placements = sites.split(',')
+        feature_types = feature_types.split(',')
     placement_combinations = list(
         reduce(lambda x, y: x + y,
                [list(combinations(placements, i)) for i in range(1, 8)]))
     input_bundles = product(placement_combinations, feature_types)
+
+    if include_nonwear:
+        nonwear_set_file = "nonwear.feature.csv"
+    else:
+        nonwear_set_file = None
+
     experiment = ForLoop(
         input_bundles,
         prepare_dataset,
         feature_set_file=feature_set_file,
         class_set_file=class_set_file,
+        nonwear_set_file=nonwear_set_file,
         pids=pids,
         output_folder=output_folder)
     try:
@@ -205,4 +251,5 @@ def main(input_folder, *, debug=False, scheduler='processes'):
 
 if __name__ == '__main__':
     run(main)
-    # main('D:/data/MDCAS/', debug=False, scheduler='sync')
+    # main('D:/data/muss_data/', debug=True, scheduler='sync',
+    #      sites='DW', feature_types='MO', include_nonwear=True)

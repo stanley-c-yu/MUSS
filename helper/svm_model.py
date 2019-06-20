@@ -1,5 +1,6 @@
 from sklearn.preprocessing import MinMaxScaler
 import sklearn.svm as svm
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils import shuffle
 from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.metrics import classification_report, f1_score
@@ -10,17 +11,20 @@ def svm_model(input_matrix,
               input_classes,
               C=16,
               kernel='rbf',
+              # 5 better than 0.25, especially between ambulation and lying, we should use a larger gamma for higher decaying impact of neighbor samples.
               gamma=0.25,
-              tol=0.0000001):
+              tol=0.0001):
     input_matrix, input_classes = shuffle(input_matrix, input_classes)
     classifier = svm.SVC(
         C=C,
         kernel=kernel,
         gamma=gamma,
         tol=tol,
-        probability=True,
-        class_weight="balanced",
-        verbose=False)
+        probability=False,
+        class_weight='balanced')
+    # verbose=False)
+    # classifier = RandomForestClassifier(
+    #     n_estimators=100, max_depth=None, min_samples_split=2, random_state=0, n_jobs=-1)
     scaler = MinMaxScaler((-1, 1))
     scaled_X = scaler.fit_transform(input_matrix)
     model = classifier.fit(scaled_X, input_classes)
