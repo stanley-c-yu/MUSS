@@ -16,6 +16,7 @@ from padar_features.libs.data_formatting.decorator import apply_on_accelerometer
 from clize import run
 from dask import delayed
 from functools import partial
+import logging
 
 
 def load_data(item, all_items, **kwargs):
@@ -37,25 +38,37 @@ def compute_features(df, **kwargs):
 
 def prepare_feature_set(input_folder,
                         *,
+                        output_folder=None,
                         debug=False,
                         sampling_rate=80,
-                        scheduler='processes'):
+                        scheduler='processes', 
+                        profiling=True,
+                        force=True):
     """Compute feature set for "Location Matters" paper by Tang et al.
 
     Process the given raw dataset (stored in mhealth format) and generate feature set file in csv format along with a profiling report and feature computation pipeline diagram.
 
     :param input_folder: Folder path of input raw dataset
+    :param output_folder: Use auto path if None
     :param debug: Use this flag to output results to 'debug_run' folder
     :param sampling_rate: The sampling rate of the raw accelerometer data in Hz
     :param scheduler: 'processes': Use multi-core processing;
                       'threads': Use python threads (not-in-parallel);
                       'sync': Use a single thread in sequential order
+    :param profiling: Use profiling or not.
     """
-    input_folder = utils.strip_path(input_folder)
-    output_folder = utils.generate_run_folder(input_folder, debug=debug)
+
+    if output_folder is None:
+        output_folder = utils.generate_run_folder(input_folder, debug=debug)
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
+
+    feature_filepath = os.path.join(output_folder, 'muss.feature.csv')
+    
+    if not force and os.path.exists(feature_filepath):
+        logging.info('Feature set file exists, skip regenerating it...')
+        return feature_filepath
 
     sensor_files = glob(
         os.path.join(input_folder, '*', 'MasterSynced', '**',
@@ -85,7 +98,7 @@ def prepare_feature_set(input_folder,
 
     groupby.final_join(delayed(join_as_dataframe))
 
-    result = groupby.compute(scheduler=scheduler).get_result()
+    result = groupby.compute(scheduler=scheduler, profiling=profiling).get_result()
 
     # rename placements
     result = result.reset_index()
@@ -96,18 +109,20 @@ def prepare_feature_set(input_folder,
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    feature_filepath = os.path.join(output_folder, 'muss.feature.csv')
+    
     profiling_filepath = os.path.join(output_folder,
                                       'feature_computation_profiling.html')
     workflow_filepath = os.path.join(output_folder,
                                      'feature_computation_workflow.pdf')
     result.to_csv(feature_filepath, float_format='%.9f', index=False)
-    groupby.show_profiling(file_path=profiling_filepath)
-    try:
-        groupby.visualize_workflow(filename=workflow_filepath)
-    except Exception as e:
-        print(e)
-        print('skip generating workflow pdf')
+    if profiling:
+        groupby.show_profiling(file_path=profiling_filepath)
+        try:
+            groupby.visualize_workflow(filename=workflow_filepath)
+        except Exception as e:
+            print(e)
+            print('skip generating workflow pdf')
+    return feature_filepath
 
 
 if __name__ == '__main__':

@@ -5,3 +5,4 @@ _site
 .jekyll-metadata
 muss_data*
 .ipynb_checkpoints
+dists/

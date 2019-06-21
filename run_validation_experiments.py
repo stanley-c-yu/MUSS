@@ -8,26 +8,28 @@ from glob import glob
 import os
 from helper.utils import generate_run_folder
 from clize import run
+import logging
 
 
-def run_all_experiments(dataset_folder, scheduler='processes'):
+def run_all_experiments(dataset_folder, scheduler='processes', profiling=True):
     output_folder = dataset_folder.replace('datasets', 'predictions')
     os.makedirs(output_folder, exist_ok=True)
     validation_files = glob(os.path.join(dataset_folder, '*.dataset.csv'))
     experiments = ForLoop(validation_files, run_single_experiment)
-    try:
-        experiments.show_workflow(
+    experiments.compute(scheduler=scheduler, profiling=profiling)
+    if profiling:
+        try:
+            experiments.show_workflow(
+                os.path.join(
+                    os.path.dirname(output_folder),
+                    'validation_experiment_workflow.pdf'))
+        except Exception as e:
+            print(e)
+        print('skip generating workflow pdf')
+        experiments.show_profiling(
             os.path.join(
                 os.path.dirname(output_folder),
-                'validation_experiment_workflow.pdf'))
-    except Exception as e:
-        print(e)
-        print('skip generating workflow pdf')
-    experiments.compute(scheduler=scheduler)
-    experiments.show_profiling(
-        os.path.join(
-            os.path.dirname(output_folder),
-            'validation_experiment_profiling.html'))
+                'validation_experiment_profiling.html'))
     prediction_sets = experiments.get_result()
     # save_prediction_sets(prediction_sets)
 
@@ -47,10 +49,10 @@ def run_single_experiment(validation_set_file, target=None):
         targets = [target]
     else:
         targets = ['POSTURE', 'ACTIVITY']
-    validation_set = exclude_unknown_and_transition(
-        validation_set, target=target)
     predictions = {}
     for target in targets:
+        validation_set = exclude_unknown_and_transition(
+        validation_set, target=target)
         prediction = run_loso(validation_set, target)
         predictions[target + '_PREDICTION'] = prediction
     prediction_set = append_prediction(validation_set, predictions)
@@ -105,28 +107,36 @@ def run_loso(validation_set, target):
     return y_pred
 
 
-def main(input_folder, *, debug=False, scheduler='processes', sites=None, feature_set=None, target=None):
+def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True, sites=None, feature_set=None, target=None):
     """Run validation experiments.
 
     :param input_folder: Folder path of input raw dataset
+    :param output_folder: auto path if None
     :param debug: Use this flag to output results to 'debug_run' folder
     :param scheduler: 'processes': Use multi-core processing;
                       'threads': Use python threads (not-in-parallel);
                       'sync': Use a single thread in sequential order
+    :param profiling: use profiling or not
     :param sites: if `None`, the function will run as for result reproduction. Otherwise, it will run for a single selected validation dataset. Should be comma separated string (e.g., "DW,DA").
     :param feature_set: if `None`, the function will run as for result reproduction. Otherwise, it will run for a single selected validation dataset. Should be either "MO", "O" or "M".
     :param target: if `None`, the function will run as for result reproduction. Otherwise, it will run for a single selected validation dataset. Should be one of the class column names.
 
     """
-
-    input_folder = utils.strip_path(input_folder)
-    output_folder = generate_run_folder(
-        input_folder, debug=debug)
+    if output_folder is None:
+        output_folder = generate_run_folder(
+            input_folder, debug=debug)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder, exist_ok=True)
+    
+    prediction_folder = os.path.join(output_folder, 'predictions')
+
+    if not force and os.path.exists(prediction_folder):
+        logging.info("Prediction folder exists, skip regenerating it...")
+        return prediction_folder
+    
     dataset_folder = os.path.join(output_folder, 'datasets')
     if sites is None or feature_set is None or target is None:
-        run_all_experiments(dataset_folder, scheduler=scheduler)
+        run_all_experiments(dataset_folder, scheduler=scheduler, profiling=profiling)
     else:
         sites = sites.split(',')
         sites.sort()
@@ -137,6 +147,7 @@ def main(input_folder, *, debug=False, scheduler='processes', sites=None, featur
         experiments = ForLoop(
             [validation_file], run_single_experiment, target=target)
         experiments.compute(scheduler='sync')
+    return prediction_folder
 
 
 if __name__ == '__main__':

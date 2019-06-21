@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "27840f845cfde72a00f416034fb315e03c578f718ac383a06627b1023c0d577a"
+            "sha256": "0a126cbbef449c941a33eacac6c713d5ea9cbf20e1f491e35f8a7554650286d6"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -306,11 +306,11 @@
         },
         "padar-converter": {
             "hashes": [
-                "sha256:71dff9346853da94e3adf5880534472b4d163f9de4ffcad1e9e2609032ad4b78",
-                "sha256:a0a623bcd3567dc266aa083a9ff597853ca313324ead554fa68aeda5c419253c"
+                "sha256:095d3ec8e39b6f837ccac871ea9e6ca7b63784ce53a2ff40fc792cf86ea2b220",
+                "sha256:9f9ad18c1f547eda51ea595c6eb385b946d91f82416b4960cdeb148f4a81591c"
             ],
             "index": "pypi",
-            "version": "==0.2.17"
+            "version": "==0.2.20"
         },
         "padar-features": {
             "hashes": [
@@ -583,6 +583,13 @@
             ],
             "index": "pypi",
             "version": "==1.25.3"
+        },
+        "wget": {
+            "hashes": [
+                "sha256:35e630eca2aa50ce998b9b1a127bb26b30dfee573702782aa982f875e3f16061"
+            ],
+            "index": "pypi",
+            "version": "==3.2"
         },
         "zict": {
             "hashes": [

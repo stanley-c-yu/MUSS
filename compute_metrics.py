@@ -8,6 +8,7 @@ from functools import reduce
 from padar_parallel.for_loop import ForLoop
 from helper.utils import generate_run_folder, strip_path
 from clize import run
+import logging
 
 
 def pa_to_activity_group(prediction_set):
@@ -20,7 +21,7 @@ def pa_to_activity_group(prediction_set):
 
 
 def get_pa_labels(input_folder):
-    filepath = os.path.join(input_folder, 'DerivedCrossParticipants',
+    filepath = os.path.join(input_folder, 'MetaCrossParticipants',
                             'muss_class_labels.csv')
     label_mapping = pd.read_csv(filepath)
     labels = label_mapping['ACTIVITY'].values.tolist()
@@ -134,17 +135,27 @@ def _compute_metrics(prediction_set, targets, pa_labels, prediction_set_file):
     return reduce(pd.merge, metrics)
 
 
-def main(input_folder, *, debug=False, scheduler='processes'):
+def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True):
     """Compute metrics for the validation predictions.
 
     :param input_folder: Folder path of input raw dataset
+    :param output_folder: Auto path if None
     :param debug: Use this flag to output results to 'debug_run' folder
     :param scheduler: 'processes': Use multi-core processing;
                       'threads': Use python threads (not-in-parallel);
                       'sync': Use a single thread in sequential order
+    :param profiling: use profiling or not
     """
-    input_folder = strip_path(input_folder)
-    output_folder = generate_run_folder(input_folder, debug=debug)
+    if output_folder is None:
+        output_folder = generate_run_folder(input_folder, debug=debug)
+
+    metric_file = os.path.join(output_folder, 'muss.metrics.csv')
+    cm_folder = os.path.join(output_folder, 'confusion_matrices')
+
+    if not force and os.path.exists(metric_file) and os.path.exists(cm_folder):
+        logging.info('Metric and confusion matrices exist, skip regenerating them...')
+        return metric_file, cm_folder
+
     prediction_set_folder = os.path.join(output_folder, 'predictions')
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(prediction_set_folder, exist_ok=True)
@@ -158,14 +169,15 @@ def main(input_folder, *, debug=False, scheduler='processes'):
         merge_func=delayed(lambda x, **kwargs: pd.concat(x, axis=0)),
         targets=targets,
         dataset_folder=input_folder)
-    experiment.compute(scheulder=scheduler)
+    experiment.compute(scheulder=scheduler, profiling=profiling)
     result = experiment.get_result()
     # sort result
     result = result.sort_values(by=['NUM_OF_SENSORS', 'FEATURE_TYPE'])
     result.to_csv(
-        os.path.join(output_folder, 'muss.metrics.csv'),
+        metric_file,
         index=False,
         float_format='%.6f')
+    return metric_file, cm_folder 
 
 
 if __name__ == '__main__':

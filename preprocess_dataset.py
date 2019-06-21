@@ -119,7 +119,7 @@ def copy_meta_files(input_folder, dataset_name):
         'orientation_corrections.csv'
     ]
     for f in meta_files:
-        p = os.path.join(input_folder, 'DerivedCrossParticipants', f)
+        p = os.path.join(input_folder, 'MetaCrossParticipants', f)
         new_p = p.replace(dataset_name, dataset_name + '_cleaned')
         os.makedirs(os.path.dirname(new_p), exist_ok=True)
         shutil.copyfile(p, new_p)

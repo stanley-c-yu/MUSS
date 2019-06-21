@@ -12,7 +12,7 @@ import os
 
 
 def get_pa_abbr_labels(dataset_folder):
-    filepath = os.path.join(dataset_folder, 'DerivedCrossParticipants',
+    filepath = os.path.join(dataset_folder, 'MetaCrossParticipants',
                             'muss_class_labels.csv')
     label_mapping = pd.read_csv(filepath)
     labels = label_mapping['ACTIVITY_ABBR'].values.tolist()
@@ -22,7 +22,7 @@ def get_pa_abbr_labels(dataset_folder):
 
 
 def get_pa_labels(dataset_folder):
-    filepath = os.path.join(dataset_folder, 'DerivedCrossParticipants',
+    filepath = os.path.join(dataset_folder, 'MetaCrossParticipants',
                             'muss_class_labels.csv')
     label_mapping = pd.read_csv(filepath)
     labels = label_mapping['ACTIVITY'].values.tolist()
@@ -90,8 +90,7 @@ class ClassLabeler:
 
 if __name__ == '__main__':
     class_labeler = ClassLabeler(
-        class_label_set=
-        'C:/Users/tqshe/Projects/python/location_matters/data/location_matters.csv'
+        class_label_set='C:/Users/tqshe/Projects/python/location_matters/data/location_matters.csv'
     )
     matched_label = class_labeler.from_annotation_labels(
         labels=['standing sweeping telling story'])

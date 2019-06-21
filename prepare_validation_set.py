@@ -9,6 +9,7 @@ from dask import delayed
 from helper import utils
 from clize import run
 from sklearn.utils import shuffle
+import logging
 
 
 def merge_placements(left_set, right_set):
@@ -193,19 +194,28 @@ def prepare_dataset(input_bundles,
                                os.path.join(output_folder, 'datasets'))
 
 
-def main(input_folder, *, sites=None, feature_types=None, include_nonwear=False, debug=False, scheduler='processes'):
+def main(input_folder, *, output_folder=None, sites=None, feature_types=None, include_nonwear=False, debug=False, scheduler='processes', profiling=True, force=True):
     """Prepare validation sets
 
     :param input_folder: Folder path of input raw dataset
+    :param output_folder: auto path if None
     :param debug: Use this flag to output results to 'debug_run' folder
     :param scheduler: 'processes': Use multi-core processing;
                       'threads': Use python threads (not-in-parallel);
                       'sync': Use a single thread in sequential order
+    :param profiling: use profiling or not.
     """
-    input_folder = utils.strip_path(input_folder)
-    output_folder = utils.generate_run_folder(input_folder, debug=debug)
+    if output_folder is None:
+        output_folder = utils.generate_run_folder(input_folder, debug=debug)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
+
+    datasets_folder = os.path.join(output_folder, 'datasets')
+
+    if not force and os.path.exists(datasets_folder):
+        logging.info('Datasets folder exits, skip regenerating...')
+        return datasets_folder
+
     feature_set_file = os.path.join(output_folder, 'muss.feature.csv')
     class_set_file = os.path.join(output_folder, 'muss.class.csv')
     if not os.path.exists(class_set_file):
@@ -240,13 +250,16 @@ def main(input_folder, *, sites=None, feature_types=None, include_nonwear=False,
         nonwear_set_file=nonwear_set_file,
         pids=pids,
         output_folder=output_folder)
-    try:
-        experiment.show_workflow(workflow_filepath)
-    except Exception as e:
-        print(e)
-        print('skip generating workflow pdf')
-    experiment.compute(scheduler=scheduler)
-    experiment.show_profiling(profiling_filepath)
+    
+    experiment.compute(scheduler=scheduler, profiling=profiling)
+    if profiling:
+        try:
+            experiment.show_workflow(workflow_filepath)
+        except Exception as e:
+            print(e)
+            print('skip generating workflow pdf')
+        experiment.show_profiling(profiling_filepath)
+    return datasets_folder
 
 
 if __name__ == '__main__':

@@ -15,6 +15,7 @@ from dask import delayed
 from helper.annotation_processor import ClassLabeler
 from helper.utils import generate_run_folder
 from padar_converter.dataset import spades
+import logging
 
 
 def preprocess_annotations(item, all_items, **kwargs):
@@ -43,14 +44,14 @@ def get_class_map(input_folder, annotation_files, scheduler='synchronous'):
 
     merged_annotations = groupby.compute(scheduler=scheduler).get_result()
     splitted_annotations = to_mutually_exclusive(merged_annotations)
-    class_label_set = os.path.join(input_folder, 'DerivedCrossParticipants',
+    class_label_set = os.path.join(input_folder, 'MetaCrossParticipants',
                                    'muss_class_labels.csv')
     class_map = ClassLabeler.from_annotation_set(
         splitted_annotations, class_label_set, interval=12.8)
     return class_map
 
 
-def get_class_set(annotation_files, class_map, scheduler='synchronous'):
+def get_class_set(annotation_files, class_map, scheduler='synchronous', profiling=True):
     groupby = GroupBy(annotation_files,
                       **MhealthWindowing.make_metas(annotation_files))
 
@@ -67,7 +68,7 @@ def get_class_set(annotation_files, class_map, scheduler='synchronous'):
         convert_annotations, interval=12.8, step=12.8, class_map=class_map)
     groupby.final_join(delayed(join_as_dataframe))
 
-    class_set = groupby.compute(scheduler=scheduler).get_result()
+    class_set = groupby.compute(scheduler=scheduler, profiling=profiling).get_result()
     return (class_set, groupby)
 
 
@@ -122,39 +123,45 @@ def convert_annotations(df, **kwargs):
     return matched_classes
 
 
-def prepare_class_set(input_folder, *, debug=False, scheduler='processes'):
+def prepare_class_set(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True):
     """Compute class set for "Location Matters" paper by Tang et al.
 
     Process the given annotations (stored in mhealth format) and generate class set file in csv format along with a profiling report and class set conversion  pipeline diagram.
 
     :param input_folder: Folder path of input raw dataset
+    :param output_folder: Use auto path if None
     :param debug: Use this flag to output results to 'debug_run' folder
     :param scheduler: 'processes': Use multi-core processing;
                       'threads': Use python threads (not-in-parallel);
                       'sync': Use a single thread in sequential order
+    :param profiling: use profiling or not.
     """
-
-    input_folder = utils.strip_path(input_folder)
-    output_folder = utils.generate_run_folder(input_folder, debug=debug)
+    if output_folder is None:
+        output_folder = utils.generate_run_folder(input_folder, debug=debug)
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
+
+    classset_filepath = os.path.join(output_folder, 'muss.class.csv')
+    if not force and os.path.exists(classset_filepath):
+        logging.info('class set file exists, skip regenerating it')
+        return classset_filepath
 
     annotation_files = glob(
         os.path.join(input_folder, '*', 'MasterSynced', '**',
                      'SPADESInLab*annotation.csv'),
         recursive=True)
 
-    class_map_file = os.path.join(input_folder, 'DerivedCrossParticipants',
+    class_map_file = os.path.join(input_folder, 'MetaCrossParticipants',
                                   'muss_class_labels.csv')
     class_map = pd.read_csv(class_map_file)
     class_set, groupby = get_class_set(
-        annotation_files, class_map=class_map, scheduler=scheduler)
+        annotation_files, class_map=class_map, scheduler=scheduler, profiling=profiling)
 
     class_set_unique = class_set.drop_duplicates(
         subset=['ANNOTATION_LABELS', 'ACTIVITY'], keep='first')
 
-    classset_filepath = os.path.join(output_folder, 'muss.class.csv')
+    
     classset_unique_filepath = os.path.join(output_folder, 'muss.classmap.csv')
     profiling_filepath = os.path.join(output_folder,
                                       'classset_computation_profiling.html')
@@ -162,12 +169,14 @@ def prepare_class_set(input_folder, *, debug=False, scheduler='processes'):
                                      'classset_computation_workflow.pdf')
     class_set.to_csv(classset_filepath, index=True)
     class_set_unique.to_csv(classset_unique_filepath, index=True)
-    groupby.show_profiling(file_path=profiling_filepath)
-    try:
-        groupby.visualize_workflow(filename=workflow_filepath)
-    except Exception as e:
-        print(e)
-        print('skip generating workflow pdf')
+    if profiling:
+        groupby.show_profiling(file_path=profiling_filepath)
+        try:
+            groupby.visualize_workflow(filename=workflow_filepath)
+        except Exception as e:
+            print(e)
+            print('skip generating workflow pdf')
+    return classset_filepath
 
 
 if __name__ == '__main__':

@@ -14,6 +14,7 @@ from openpyxl.utils import get_column_letter
 from helper.annotation_processor import get_pa_labels, get_pa_abbr_labels
 from helper.utils import generate_run_folder, strip_path
 from clize import run
+import logging
 
 
 def format_for_excel(df, highlight_header=True):
@@ -504,10 +505,10 @@ def figure_2(input_folder, debug=False):
 
 def dataset_summary(input_folder, debug=False):
     output_folder, _, _, _ = prepare_paths(input_folder, debug=debug)
-    exception_file = os.path.join(input_folder, "DerivedCrossParticipants", 'pid_exceptions.csv')
-    offset_mapping_file = os.path.join(input_folder, "DerivedCrossParticipants", 'offset_mapping.csv')
-    orientation_correction_file = os.path.join(input_folder, 'DerivedCrossParticipants', 'orientation_corrections.csv')
-    subject_file = os.path.join(input_folder, "DerivedCrossParticipants", 'subjects.csv')
+    exception_file = os.path.join(input_folder, "MetaCrossParticipants", 'pid_exceptions.csv')
+    offset_mapping_file = os.path.join(input_folder, "MetaCrossParticipants", 'offset_mapping.csv')
+    orientation_correction_file = os.path.join(input_folder, 'MetaCrossParticipants', 'orientation_corrections.csv')
+    subject_file = os.path.join(input_folder, "MetaCrossParticipants", 'subjects.csv')
     class_file = os.path.join(output_folder, 'muss.class.csv')
     subjects = pd.read_csv(subject_file, header=0)
     exceptions = pd.read_csv(exception_file, header=0)
@@ -602,9 +603,9 @@ def numbers_in_abstract(input_folder, debug=False):
     result.to_csv(output_filepath, index=True, float_format='%.3f')
     return result
 
-def prepare_paths(input_folder, debug=False):
-    input_folder = strip_path(input_folder)
-    output_folder = generate_run_folder(input_folder, debug=debug)
+def prepare_paths(input_folder, output_folder=None, debug=False):
+    if output_folder is None:
+        output_folder = generate_run_folder(input_folder, debug=debug)
     os.makedirs(output_folder, exist_ok=True)
     metrics_file = os.path.join(output_folder, 'muss.metrics.csv')
     figure_2_predictions = os.path.join(
@@ -613,20 +614,27 @@ def prepare_paths(input_folder, debug=False):
         output_folder, 'confusion_matrices', 'DW_DT.MO.confusion_matrix.csv')
     return output_folder, metrics_file, figure_2_predictions, figure_2_confusion_matrix
 
-def main(input_folder, *, debug=False):
+def main(input_folder, *, output_folder=None, debug=False, force=True):
     """Generate figures and tables used in the paper
 
     :param input_folder: Folder path of input raw dataset
+    :param output_folder: Auto path if None
     :param debug: Use this flag to output results to 'debug_run' folder
     """
-    table_3(input_folder, debug=debug)
-    table_4(input_folder, debug=debug)
-    figure_1(input_folder, debug=debug)
-    figure_2(input_folder, debug=debug)
-    supplementary_table_1(input_folder, debug=debug)
-    supplementary_table_2(input_folder, debug=debug)
-    dataset_summary(input_folder, debug=debug)
-    numbers_in_abstract(input_folder, debug=debug)
+    figure_folder = os.path.join(output_folder,'figures_and_tables')
+    if not force and os.path.exists(figure_folder):
+        logging.info('Figures exist, skip regenerating them...')
+        return figure_folder
+    table_3(input_folder, output_folder=output_folder, debug=debug)
+    table_4(input_folder, output_folder=output_folder, debug=debug)
+    figure_1(input_folder, output_folder=output_folder, debug=debug)
+    figure_2(input_folder, output_folder=output_folder, debug=debug)
+    supplementary_table_1(input_folder, output_folder=output_folder, debug=debug)
+    supplementary_table_2(input_folder, output_folder=output_folder, debug=debug)
+    dataset_summary(input_folder, output_folder=output_folder, debug=debug)
+    numbers_in_abstract(input_folder, output_folder=output_folder, debug=debug)
+    output_folder = generate_run_folder(input_folder, output_folder=output_folder, debug=debug)
+    return figure_folder
 
 if __name__ == '__main__':
     run(main)

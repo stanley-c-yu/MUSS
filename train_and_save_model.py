@@ -69,7 +69,7 @@ def main(input_folder,
 
 
 def grouping_file(input_folder):
-    class_label_set = os.path.join(input_folder, 'DerivedCrossParticipants',
+    class_label_set = os.path.join(input_folder, 'MetaCrossParticipants',
                                    'muss_class_labels.csv')
     class_mapping = pd.read_csv(class_label_set)
     return class_mapping
