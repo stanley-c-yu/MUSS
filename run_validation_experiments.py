@@ -48,7 +48,7 @@ def run_single_experiment(validation_set_file, target=None):
     if target is not None:
         targets = [target]
     else:
-        targets = ['POSTURE', 'ACTIVITY']
+        targets = ['MUSS_3_POSTURES', 'MUSS_22_ACTIVITIES']
     predictions = {}
     for target in targets:
         validation_set = exclude_unknown_and_transition(
@@ -56,11 +56,11 @@ def run_single_experiment(validation_set_file, target=None):
         prediction = run_loso(validation_set, target)
         predictions[target + '_PREDICTION'] = prediction
     prediction_set = append_prediction(validation_set, predictions)
-    return save_prediction_set(prediction_set, validation_set_file)
+    return save_prediction_set(prediction_set, validation_set_file, target=target)
 
 
 @delayed
-def save_prediction_set(prediction_set, validation_set_file):
+def save_prediction_set(prediction_set, validation_set_file, target=None):
     placements = prediction_set['SENSOR_PLACEMENT'].values[0]
     print('Saving prediction set for: ' + placements)
     output_filepath = validation_set_file.replace(
@@ -91,9 +91,7 @@ def append_prediction(validation_set, predictions):
 def run_loso(validation_set, target):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
-        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "ACTIVITY",
-        "POSTURE", "ACTIVITY_GROUP", "MDCAS", "THIRTEEN_ACTIVITIES", "CLASSIC_SEVEN_ACTIVITIES",
-        "SEDENTARY_AMBULATION_CYCLING", 'ACTIVITY_ABBR'
+        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "FINEST_ACTIVITIES","MUSS_22_ACTIVITIES","MUSS_3_POSTURES","MUSS_6_ACTIVITY_GROUPS","MDCAS","RIAR_15_ACTIVITIES","SEDENTARY_AMBULATION_CYCLING","MUSS_22_ACTIVITY_ABBRS"
     ]
     placements = validation_set['SENSOR_PLACEMENT'].values[0]
     feature_type = validation_set['FEATURE_TYPE'].values[0]
@@ -107,7 +105,7 @@ def run_loso(validation_set, target):
     return y_pred
 
 
-def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True, sites=None, feature_set=None, target=None):
+def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True, sites=None, feature_set=None, target=None, include_nonwear=False):
     """Run validation experiments.
 
     :param input_folder: Folder path of input raw dataset
@@ -128,13 +126,20 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
     if not os.path.exists(output_folder):
         os.makedirs(output_folder, exist_ok=True)
     
-    prediction_folder = os.path.join(output_folder, 'predictions')
+    suffix = '_with_nonwear' if include_nonwear else ''
+    if target is None:
+        prediction_folder = os.path.join(output_folder, 'predictions' + suffix)
+    else:
+        prediction_folder = os.path.join(output_folder, target + '_predictions' + suffix)
 
     if not force and os.path.exists(prediction_folder):
         logging.info("Prediction folder exists, skip regenerating it...")
         return prediction_folder
-    
-    dataset_folder = os.path.join(output_folder, 'datasets')
+    if target is None:
+        dataset_folder = os.path.join(output_folder, 'datasets' + suffix)
+    else:
+        dataset_folder = os.path.join(output_folder, target + '_datasets' + suffix)
+
     if sites is None or feature_set is None or target is None:
         run_all_experiments(dataset_folder, scheduler=scheduler, profiling=profiling)
     else:

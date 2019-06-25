@@ -12,10 +12,10 @@ import logging
 
 
 def pa_to_activity_group(prediction_set):
-    mapping = prediction_set.groupby('ACTIVITY').apply(
-        lambda chunk: chunk['ACTIVITY_GROUP'].values[0]).to_dict()
-    prediction_set.loc[:, 'ACTIVITY_GROUP_PREDICTION'] = prediction_set[
-        'ACTIVITY_PREDICTION'].map(mapping)
+    mapping = prediction_set.groupby('MUSS_22_ACTIVITIES').apply(
+        lambda chunk: chunk['MUSS_6_ACTIVITY_GROUPS'].values[0]).to_dict()
+    prediction_set.loc[:, 'MUSS_6_ACTIVITY_GROUPS_PREDICTION'] = prediction_set[
+        'MUSS_22_ACTIVITIES_PREDICTION'].map(mapping)
     labels = list(set(mapping.values()))
     return prediction_set, labels
 
@@ -24,15 +24,15 @@ def get_pa_labels(input_folder):
     filepath = os.path.join(input_folder, 'MetaCrossParticipants',
                             'muss_class_labels.csv')
     label_mapping = pd.read_csv(filepath)
-    labels = label_mapping['ACTIVITY'].values.tolist()
+    labels = label_mapping['MUSS_22_ACTIVITIES'].unique().tolist()
     labels.remove('Unknown')
     labels.remove('Transition')
     return labels
 
 
 def pa_confusion_matrix(prediction_set, labels):
-    y_true = prediction_set['ACTIVITY']
-    y_pred = prediction_set['ACTIVITY_PREDICTION']
+    y_true = prediction_set['MUSS_22_ACTIVITIES']
+    y_pred = prediction_set['MUSS_22_ACTIVITIES_PREDICTION']
     conf_mat = confusion_matrix(y_true, y_pred, labels)
     conf_df = pd.DataFrame(conf_mat, columns=labels, index=labels)
     return conf_df
@@ -42,38 +42,38 @@ def pa_metric(prediction_set):
     prediction_set, labels = pa_to_activity_group(prediction_set)
     report = {}
     average_f1_inter = f1_score(
-        y_true=prediction_set['ACTIVITY_GROUP'],
-        y_pred=prediction_set['ACTIVITY_GROUP_PREDICTION'],
+        y_true=prediction_set['MUSS_6_ACTIVITY_GROUPS'],
+        y_pred=prediction_set['MUSS_6_ACTIVITY_GROUPS_PREDICTION'],
         average='macro')
     f1s_inter = f1_score(
-        y_true=prediction_set['ACTIVITY_GROUP'],
-        y_pred=prediction_set['ACTIVITY_GROUP_PREDICTION'],
+        y_true=prediction_set['MUSS_6_ACTIVITY_GROUPS'],
+        y_pred=prediction_set['MUSS_6_ACTIVITY_GROUPS_PREDICTION'],
         labels=labels,
         average=None)
-    report['ACTIVITY_AVERAGE'] = [
+    report['MUSS_22_ACTIVITIES_AVERAGE'] = [
         f1_score(
-            y_true=prediction_set['ACTIVITY'],
-            y_pred=prediction_set['ACTIVITY_PREDICTION'],
+            y_true=prediction_set['MUSS_22_ACTIVITIES'],
+            y_pred=prediction_set['MUSS_22_ACTIVITIES_PREDICTION'],
             average='macro')
     ]
-    report['ACTIVITY_GROUP_AVERAGE'] = [average_f1_inter]
+    report['MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE'] = [average_f1_inter]
     for label, f1_inter in zip(labels, f1s_inter):
         report[label.upper() + "_GROUP"] = [f1_inter]
         if label == 'Biking' or label == 'Lying' or label == 'Running':
             continue
-        prediction_set_inner = prediction_set[prediction_set['ACTIVITY_GROUP']
+        prediction_set_inner = prediction_set[prediction_set['MUSS_6_ACTIVITY_GROUPS']
                                               == label]
         prediction_set_inner = prediction_set_inner[
-            prediction_set_inner['ACTIVITY_GROUP_PREDICTION'] == label]
+            prediction_set_inner['MUSS_6_ACTIVITY_GROUPS_PREDICTION'] == label]
         report[label.upper() + "_IN_GROUP"] = [
             f1_score(
-                y_true=prediction_set_inner['ACTIVITY'],
-                y_pred=prediction_set_inner['ACTIVITY_PREDICTION'],
+                y_true=prediction_set_inner['MUSS_22_ACTIVITIES'],
+                y_pred=prediction_set_inner['MUSS_22_ACTIVITIES_PREDICTION'],
                 average='macro')
         ]
     report = pd.DataFrame(data=report)
     report.insert(
-        2, 'ACTIVITY_IN_GROUP_AVERAGE',
+        2, 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE',
         np.mean(
             report.select(lambda x: 'IN_GROUP' in x, axis=1).values, axis=1))
     report = report.reset_index(drop=True)
@@ -82,12 +82,12 @@ def pa_metric(prediction_set):
 
 def posture_metric(prediction_set):
     report = {}
-    y_true = prediction_set['POSTURE']
-    y_pred = prediction_set["POSTURE_PREDICTION"]
+    y_true = prediction_set['MUSS_3_POSTURES']
+    y_pred = prediction_set["MUSS_3_POSTURES_PREDICTION"]
     labels = np.union1d(np.unique(y_true), np.unique(y_pred)).tolist()
     f1_average = f1_score(y_true, y_pred, average='macro')
     f1_classes = f1_score(y_true, y_pred, labels=labels, average=None)
-    report['POSTURE_AVERAGE'] = [f1_average]
+    report['MUSS_3_POSTURES_AVERAGE'] = [f1_average]
     for label, f1_class in zip(labels, f1_classes):
         report[label.upper() + '_POSTURE'] = [f1_class]
     report = pd.DataFrame(data=report)
@@ -120,9 +120,9 @@ def _compute_metrics(prediction_set, targets, pa_labels, prediction_set_file):
     feature_type = prediction_set['FEATURE_TYPE'].values[0]
     num_of_sensors = len(placements.split('_'))
     for target in targets:
-        if target == 'POSTURE':
+        if target == 'MUSS_3_POSTURES':
             report = posture_metric(prediction_set)
-        elif target == 'ACTIVITY':
+        elif target == 'MUSS_22_ACTIVITIES':
             report = pa_metric(prediction_set)
             conf_df = pa_confusion_matrix(prediction_set, pa_labels)
             save_confusion_matrix(prediction_set_file, conf_df)
@@ -135,7 +135,7 @@ def _compute_metrics(prediction_set, targets, pa_labels, prediction_set_file):
     return reduce(pd.merge, metrics)
 
 
-def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True):
+def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True, target=None, include_nonwear=False):
     """Compute metrics for the validation predictions.
 
     :param input_folder: Folder path of input raw dataset
@@ -156,13 +156,20 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
         logging.info('Metric and confusion matrices exist, skip regenerating them...')
         return metric_file, cm_folder
 
-    prediction_set_folder = os.path.join(output_folder, 'predictions')
+    suffix = '_with_nonwear' if include_nonwear else ''
+    if target is None:
+        prediction_set_folder = os.path.join(output_folder, 'predictions' + suffix)
+    else:
+        prediction_set_folder = os.path.join(output_folder, target + '_predictions' + suffix)
     os.makedirs(output_folder, exist_ok=True)
     os.makedirs(prediction_set_folder, exist_ok=True)
 
     prediction_set_files = glob(
         os.path.join(prediction_set_folder, '*.prediction.csv'))
-    targets = ['POSTURE', 'ACTIVITY']
+    if target is None:
+        targets = ['MUSS_22_ACTIVITIES', 'MUSS_3_POSTURES']
+    else:
+        targets = target.split(',')
     experiment = ForLoop(
         prediction_set_files,
         compute_metrics_for_single_file,

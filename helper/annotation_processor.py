@@ -15,7 +15,7 @@ def get_pa_abbr_labels(dataset_folder):
     filepath = os.path.join(dataset_folder, 'MetaCrossParticipants',
                             'muss_class_labels.csv')
     label_mapping = pd.read_csv(filepath)
-    labels = label_mapping['ACTIVITY_ABBR'].values.tolist()
+    labels = label_mapping['MUSS_22_ACTIVITY_ABBRS'].unique().tolist()
     labels.remove('Unknown')
     labels.remove('Transit.')
     return labels
@@ -25,7 +25,7 @@ def get_pa_labels(dataset_folder):
     filepath = os.path.join(dataset_folder, 'MetaCrossParticipants',
                             'muss_class_labels.csv')
     label_mapping = pd.read_csv(filepath)
-    labels = label_mapping['ACTIVITY'].values.tolist()
+    labels = label_mapping['MUSS_22_ACTIVITIES'].unique().tolist()
     labels.remove('Unknown')
     labels.remove('Transition')
     return labels
@@ -86,12 +86,3 @@ class ClassLabeler:
         class_label_map = class_labeler.from_annotation_labels_list(
             annotation_set)
         return class_label_map
-
-
-if __name__ == '__main__':
-    class_labeler = ClassLabeler(
-        class_label_set='C:/Users/tqshe/Projects/python/location_matters/data/location_matters.csv'
-    )
-    matched_label = class_labeler.from_annotation_labels(
-        labels=['standing sweeping telling story'])
-    print(matched_label)

@@ -95,8 +95,8 @@ def basic_stat(df, columns, method='min_max'):
         result['SORT'] = sort_col
         return result
 
-def table_3(input_folder, debug=False):
-    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
+def table_3(input_folder, output_folder=None, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, output_folder=output_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'table3.csv')
     output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'table3.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
@@ -104,13 +104,13 @@ def table_3(input_folder, debug=False):
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] <= 3)
     table3_data = summary.loc[filter_condition, [
-        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']]
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'MUSS_3_POSTURES_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']]
 
-    table3_data = table3_data.sort_values(by=['POSTURE_AVERAGE'], ascending=False).drop_duplicates()
+    table3_data = table3_data.sort_values(by=['MUSS_3_POSTURES_AVERAGE'], ascending=False).drop_duplicates()
     # best models
-    best_models = table3_data.groupby('NUM_OF_SENSORS').apply(lambda rows: rows.head(1)).reset_index(drop=True).sort_values(by=['POSTURE_AVERAGE'], ascending=False)
+    best_models = table3_data.groupby('NUM_OF_SENSORS').apply(lambda rows: rows.head(1)).reset_index(drop=True).sort_values(by=['MUSS_3_POSTURES_AVERAGE'], ascending=False)
     best_models = best_models.loc[:, [
-        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']].round(2)
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'MUSS_3_POSTURES_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']].round(2)
     
     # best models using wrist sensors
     table3_data['USE_DW'] = table3_data['SENSOR_PLACEMENT'].transform(
@@ -118,9 +118,9 @@ def table_3(input_folder, debug=False):
     table3_data['USE_NDW'] = table3_data['SENSOR_PLACEMENT'].transform(
         lambda s: 'NDW' in s.split('_'))
     table3_data['USE_W'] = table3_data['USE_DW'] | table3_data['USE_NDW']
-    best_wrist_models = table3_data.loc[table3_data['USE_W'] == True,:].groupby('NUM_OF_SENSORS').apply(lambda rows: rows.nlargest(1, columns='POSTURE_AVERAGE')).reset_index(drop=True).sort_values(by=['POSTURE_AVERAGE'], ascending=False)
+    best_wrist_models = table3_data.loc[table3_data['USE_W'] == True,:].groupby('NUM_OF_SENSORS').apply(lambda rows: rows.nlargest(1, columns='MUSS_3_POSTURES_AVERAGE')).reset_index(drop=True).sort_values(by=['MUSS_3_POSTURES_AVERAGE'], ascending=False)
     best_wrist_models = best_wrist_models.loc[:, [
-        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']].round(2)
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'MUSS_3_POSTURES_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']].round(2)
     # categorized performances
     table3_data['CATEGORY'] = 'W'
     
@@ -154,7 +154,7 @@ def table_3(input_folder, debug=False):
     c8 = table3_data['SENSOR_PLACEMENT'].str.contains('W') & (~table3_data['SENSOR_PLACEMENT'].str.contains('H')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('A')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('T'))
     table3_data.loc[c8, 'CATEGORY'] = 'W only'
     
-    result = table3_data.groupby(['NUM_OF_SENSORS', 'CATEGORY', 'USE_W']).apply(basic_stat, columns=['POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
+    result = table3_data.groupby(['NUM_OF_SENSORS', 'CATEGORY', 'USE_W']).apply(basic_stat, columns=['MUSS_3_POSTURES_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
     
     result['CATEGORY'] = result['CATEGORY'] + result['USE_W'].transform(lambda x: ' (W)' if x else '')
     result = result.drop(columns=['USE_W'])
@@ -178,8 +178,8 @@ def table_3(input_folder, debug=False):
     return result
 
 
-def table_4(input_folder, debug=False):
-    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
+def table_4(input_folder, output_folder=None, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, output_folder=output_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'table4.csv')
     output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'table4.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
@@ -187,13 +187,13 @@ def table_4(input_folder, debug=False):
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] <= 3)
     table4_data = summary.loc[filter_condition, [
-        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']]
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'MUSS_22_ACTIVITIES_AVERAGE',  'MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE', 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE']]
 
-    table4_data = table4_data.sort_values(by=['ACTIVITY_AVERAGE'], ascending=False).drop_duplicates()
+    table4_data = table4_data.sort_values(by=['MUSS_22_ACTIVITIES_AVERAGE'], ascending=False).drop_duplicates()
     # best models
-    best_models = table4_data.groupby('NUM_OF_SENSORS').apply(lambda rows: rows.head(1)).reset_index(drop=True).sort_values(by=['ACTIVITY_AVERAGE'], ascending=False)
+    best_models = table4_data.groupby('NUM_OF_SENSORS').apply(lambda rows: rows.head(1)).reset_index(drop=True).sort_values(by=['MUSS_22_ACTIVITIES_AVERAGE'], ascending=False)
     best_models = best_models.loc[:, [
-        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']].round(2)
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'MUSS_22_ACTIVITIES_AVERAGE',  'MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE', 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE']].round(2)
     
     # best models using wrist sensors
     table4_data['USE_DW'] = table4_data['SENSOR_PLACEMENT'].transform(
@@ -205,9 +205,9 @@ def table_4(input_folder, debug=False):
     table4_data['USE_W'] = table4_data['USE_DW'] | table4_data['USE_NDW']
     table4_data.loc[~table4_data['USE_W'], 'DW_NDW_NONE'] = ''
     table4_data.loc[table4_data['USE_DW'] & table4_data['USE_NDW'],'DW_NDW_NONE'] = 'Both W'
-    best_wrist_models = table4_data.loc[table4_data['USE_W'] == True,:].groupby('NUM_OF_SENSORS').apply(lambda rows: rows.nlargest(1, columns='ACTIVITY_AVERAGE')).reset_index(drop=True).sort_values(by=['ACTIVITY_AVERAGE'], ascending=False)
+    best_wrist_models = table4_data.loc[table4_data['USE_W'] == True,:].groupby('NUM_OF_SENSORS').apply(lambda rows: rows.nlargest(1, columns='MUSS_22_ACTIVITIES_AVERAGE')).reset_index(drop=True).sort_values(by=['MUSS_22_ACTIVITIES_AVERAGE'], ascending=False)
     best_wrist_models = best_wrist_models.loc[:, [
-        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']].round(2)
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'MUSS_22_ACTIVITIES_AVERAGE',  'MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE', 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE']].round(2)
     # categorized performances
     table4_data['CATEGORY'] = 'W'
     
@@ -242,13 +242,13 @@ def table_4(input_folder, debug=False):
     table4_data.loc[c8, 'CATEGORY'] = 'W only'
 
     # categorized for wrist models
-    w_categories = table4_data.loc[table4_data['USE_W'], :].groupby(['NUM_OF_SENSORS', 'CATEGORY', 'DW_NDW_NONE']).apply(basic_stat, columns=['ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
+    w_categories = table4_data.loc[table4_data['USE_W'], :].groupby(['NUM_OF_SENSORS', 'CATEGORY', 'DW_NDW_NONE']).apply(basic_stat, columns=['MUSS_22_ACTIVITIES_AVERAGE',  'MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE', 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
     
     w_categories['CATEGORY'] = w_categories['DW_NDW_NONE'] + ', ' + w_categories['CATEGORY']
     w_categories = w_categories.drop(columns=['DW_NDW_NONE'])
 
     # categorize for non-wrist models
-    nw_categories = table4_data.loc[~table4_data['USE_W'], :].groupby(['NUM_OF_SENSORS']).apply(basic_stat, columns=['ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
+    nw_categories = table4_data.loc[~table4_data['USE_W'], :].groupby(['NUM_OF_SENSORS']).apply(basic_stat, columns=['MUSS_22_ACTIVITIES_AVERAGE',  'MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE', 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
     nw_categories.insert(1, 'CATEGORY', 'A, H, T')
 
     best_models.columns = ['# of sensors', 'Sensor placements',
@@ -272,8 +272,8 @@ def table_4(input_folder, debug=False):
     return result
 
 
-def supplementary_table_1(input_folder, debug=False):
-    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
+def supplementary_table_1(input_folder, output_folder=None, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, output_folder=output_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'supplementary_table1.csv')
     output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'supplementary_table1.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
@@ -281,7 +281,7 @@ def supplementary_table_1(input_folder, debug=False):
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] <= 3)
     table5_data = summary.loc[filter_condition, [
-        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'POSTURE_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']]
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'MUSS_3_POSTURES_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE']]
     filtered_table5_data = table5_data
     filtered_table5_data.columns = ['# of sensors', 'Sensor placements',
                                     'Average', 'Lying', 'Sitting', 'Upright']
@@ -297,8 +297,8 @@ def supplementary_table_1(input_folder, debug=False):
     return filtered_table5_data
 
 
-def supplementary_table_2(input_folder, debug=False):
-    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
+def supplementary_table_2(input_folder, output_folder=None, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, output_folder=output_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'supplementary_table2.csv')
     output_filepath_excel = os.path.join(output_folder,'figures_and_tables', 'supplementary_table2.xlsx')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
@@ -306,7 +306,7 @@ def supplementary_table_2(input_folder, debug=False):
     filter_condition = (summary['FEATURE_TYPE'] == 'MO') & (
         summary['NUM_OF_SENSORS'] <= 3)
     table6_data = summary.loc[filter_condition, [
-        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'ACTIVITY_AVERAGE',  'ACTIVITY_GROUP_AVERAGE', 'ACTIVITY_IN_GROUP_AVERAGE']]
+        'NUM_OF_SENSORS', 'SENSOR_PLACEMENT', 'MUSS_22_ACTIVITIES_AVERAGE',  'MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE', 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE']]
     # filtered_table6_data = table6_data.groupby('NUM_OF_SENSORS').apply(
     #     top_and_bottom_n, column='ACTIVITY_AVERAGE', n=5).reset_index(drop=True)
     filtered_table6_data = table6_data
@@ -324,9 +324,9 @@ def supplementary_table_2(input_folder, debug=False):
     return filtered_table6_data
 
 
-def figure_1(input_folder, debug=False):
+def figure_1(input_folder, output_folder=None, debug=False):
     rcParams.update(rcParamsDefault)
-    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder, output_folder=output_folder, debug=debug)
     rcParams['font.family'] = 'serif'
     rcParams['font.size'] = 12
     rcParams['font.serif'] = ['Times New Roman']
@@ -340,7 +340,7 @@ def figure_1(input_folder, debug=False):
 
     #  prepare line plot data
     line_plot_data = summary[[
-        'NUM_OF_SENSORS', 'FEATURE_TYPE', 'POSTURE_AVERAGE', 'ACTIVITY_AVERAGE']]
+        'NUM_OF_SENSORS', 'FEATURE_TYPE', 'MUSS_3_POSTURES_AVERAGE', 'MUSS_22_ACTIVITIES_AVERAGE']]
     line_plot_data.columns = [
         'Number of sensors', 'Feature set', 'Posture', 'PA']
     line_plot_data.loc[:, 'Feature set'] = line_plot_data['Feature set'].map({
@@ -358,7 +358,7 @@ def figure_1(input_folder, debug=False):
 
     # prepare point plot data
     point_plot_data = summary.loc[summary['FEATURE_TYPE'] == 'MO', [
-        'SENSOR_PLACEMENT', 'NUM_OF_SENSORS', 'POSTURE_AVERAGE', 'ACTIVITY_AVERAGE']]
+        'SENSOR_PLACEMENT', 'NUM_OF_SENSORS', 'MUSS_3_POSTURES_AVERAGE', 'MUSS_22_ACTIVITIES_AVERAGE']]
     point_plot_data.columns = ['Sensor placements',
                                'Number of sensors', 'Posture', 'PA']
 
@@ -447,9 +447,9 @@ def figure_1(input_folder, debug=False):
     plt.close(fig=g)
     return g
 
-def figure_2(input_folder, debug=False):
+def figure_2(input_folder, output_folder=None, debug=False):
     rcParams.update(rcParamsDefault)
-    output_folder, metrics_file, prediction_set_file, confusion_matrix_file = prepare_paths(input_folder, debug=debug)
+    output_folder, metrics_file, prediction_set_file, confusion_matrix_file = prepare_paths(input_folder, output_folder=output_folder, debug=debug)
     # prepare confusion matrix
     abbr_labels = get_pa_abbr_labels(input_folder)
     
@@ -484,7 +484,7 @@ def figure_2(input_folder, debug=False):
     prediction_set = pd.read_csv(prediction_set_file, parse_dates=[
                                  0, 1], infer_datetime_format=True)
     
-    f1_scores_per_activity = f1_score(prediction_set['ACTIVITY'], prediction_set['ACTIVITY_PREDICTION'], labels=labels, average=None)
+    f1_scores_per_activity = f1_score(prediction_set['MUSS_22_ACTIVITIES'], prediction_set['MUSS_22_ACTIVITIES_PREDICTION'], labels=labels, average=None)
     f1_df = pd.DataFrame(data=f1_scores_per_activity, index=labels, columns = ['F1_score'])
     f1_df = f1_df.sort_values(['F1_score'])
     f1_df = f1_df.loc[f1_df['F1_score']<=0.4,:]
@@ -503,8 +503,8 @@ def figure_2(input_folder, debug=False):
     return fig
 
 
-def dataset_summary(input_folder, debug=False):
-    output_folder, _, _, _ = prepare_paths(input_folder, debug=debug)
+def dataset_summary(input_folder, output_folder=None, debug=False):
+    output_folder, _, _, _ = prepare_paths(input_folder, output_folder=output_folder, debug=debug)
     exception_file = os.path.join(input_folder, "MetaCrossParticipants", 'pid_exceptions.csv')
     offset_mapping_file = os.path.join(input_folder, "MetaCrossParticipants", 'offset_mapping.csv')
     orientation_correction_file = os.path.join(input_folder, 'MetaCrossParticipants', 'orientation_corrections.csv')
@@ -533,15 +533,15 @@ def dataset_summary(input_folder, debug=False):
     summary['std_offset'] = selected_offset_mapping.iloc[:, 1].std()
     summary['misplace_percentage'] = selected_orientation_corrections.shape[0] / (42.0 * 7)
     # summary['misplace_ankle_percentage'] = np.sum(selected_orientation_corrections.SENSOR_PLACEMENT.str.contains('ankle|waist|thigh')) / selected_orientation_corrections.shape[0]
-    summary['total_samples'] = np.sum(~classes.ACTIVITY.isin(['Transition', 'Unknown']))
-    summary['total_activities'] = len(classes.ACTIVITY.unique()) - 2
-    summary['upright_samples'] = np.sum(classes.POSTURE == 'Upright')
-    summary['sitting_samples'] = np.sum(classes.POSTURE == 'Sitting')
-    summary['lying_samples'] = np.sum(classes.POSTURE == 'Lying')
-    activity_samples = classes.ACTIVITY.value_counts()
+    summary['total_samples'] = np.sum(~classes['MUSS_22_ACTIVITIES'].isin(['Transition', 'Unknown']))
+    summary['total_activities'] = len(classes['MUSS_22_ACTIVITIES'].unique()) - 2
+    summary['upright_samples'] = np.sum(classes['MUSS_3_POSTURES'] == 'Upright')
+    summary['sitting_samples'] = np.sum(classes['MUSS_3_POSTURES'] == 'Sitting')
+    summary['lying_samples'] = np.sum(classes['MUSS_3_POSTURES'] == 'Lying')
+    activity_samples = classes['MUSS_22_ACTIVITIES'].value_counts()
     activity_samples = activity_samples.to_frame()
     activity_samples['DURATION(MIN)'] = activity_samples.values * 12.8 / 60.0
-    ag_samples = classes.ACTIVITY_GROUP.value_counts()
+    ag_samples = classes['MUSS_6_ACTIVITY_GROUPS'].value_counts()
     ag_samples = ag_samples.to_frame()
     ag_samples['DURATION(MIN)'] = ag_samples.values * 12.8 / 60.0
     summary_output = os.path.join(output_folder, 'figures_and_tables', 'dataset_stats.csv')
@@ -553,8 +553,8 @@ def dataset_summary(input_folder, debug=False):
     ag_samples.to_csv(ag_samples_output, float_format='%.3f', index=True, header=True)
     return summary_df, activity_samples, ag_samples
 
-def numbers_in_abstract(input_folder, debug=False):
-    output_folder, metrics_file, _, _ = prepare_paths(input_folder, debug=debug)
+def numbers_in_abstract(input_folder, output_folder=None, debug=False):
+    output_folder, metrics_file, _, _ = prepare_paths(input_folder,output_folder=output_folder, debug=debug)
     summary = pd.read_csv(metrics_file)
     filter_condition = (summary.NUM_OF_SENSORS == 2) & (~summary.SENSOR_PLACEMENT.str.contains('W')) & (summary.FEATURE_TYPE == 'MO')
     two_non_wrist_models = summary.loc[filter_condition,:]
@@ -575,28 +575,28 @@ def numbers_in_abstract(input_folder, debug=False):
 
     result = dict()
     result['TWO_NON_WRIST'] = {
-        'POSTURE_MEAN': two_non_wrist_models.POSTURE_AVERAGE.mean(),
-        'POSTURE_STD': two_non_wrist_models.POSTURE_AVERAGE.std(),
-        'PA_MEAN': two_non_wrist_models.ACTIVITY_AVERAGE.mean(),
-        'PA_STD': two_non_wrist_models.ACTIVITY_AVERAGE.std()
+        'POSTURE_MEAN': two_non_wrist_models['MUSS_3_POSTURES_AVERAGE'].mean(),
+        'POSTURE_STD': two_non_wrist_models['MUSS_3_POSTURES_AVERAGE'].std(),
+        'PA_MEAN': two_non_wrist_models['MUSS_22_ACTIVITIES_AVERAGE'].mean(),
+        'PA_STD': two_non_wrist_models['MUSS_22_ACTIVITIES_AVERAGE'].std()
     }
     result['TWO_WRIST_AND_NON_WRIST'] = {
-        'POSTURE_MEAN': two_wrist_and_non_wrist_models.POSTURE_AVERAGE.mean(),
-        'POSTURE_STD': two_wrist_and_non_wrist_models.POSTURE_AVERAGE.std(),
-        'PA_MEAN': two_wrist_and_non_wrist_models.ACTIVITY_AVERAGE.mean(),
-        'PA_STD': two_wrist_and_non_wrist_models.ACTIVITY_AVERAGE.std()
+        'POSTURE_MEAN': two_wrist_and_non_wrist_models['MUSS_3_POSTURES_AVERAGE'].mean(),
+        'POSTURE_STD': two_wrist_and_non_wrist_models['MUSS_3_POSTURES_AVERAGE'].std(),
+        'PA_MEAN': two_wrist_and_non_wrist_models['MUSS_22_ACTIVITIES_AVERAGE'].mean(),
+        'PA_STD': two_wrist_and_non_wrist_models['MUSS_22_ACTIVITIES_AVERAGE'].std()
     }
     result['TWO_WRIST'] = {
-        'POSTURE_MEAN': two_wrist_models.POSTURE_AVERAGE.mean(),
-        'POSTURE_STD': two_wrist_models.POSTURE_AVERAGE.std(),
-        'PA_MEAN': two_wrist_models.ACTIVITY_AVERAGE.mean(),
-        'PA_STD': two_wrist_models.ACTIVITY_AVERAGE.std()
+        'POSTURE_MEAN': two_wrist_models['MUSS_3_POSTURES_AVERAGE'].mean(),
+        'POSTURE_STD': two_wrist_models['MUSS_3_POSTURES_AVERAGE'].std(),
+        'PA_MEAN': two_wrist_models['MUSS_22_ACTIVITIES_AVERAGE'].mean(),
+        'PA_STD': two_wrist_models['MUSS_22_ACTIVITIES_AVERAGE'].std()
     }
     result['OTHER_THAN_TWO_WRIST_AND_NON_WRIST'] = {
-        'POSTURE_MEAN': other_two_models.POSTURE_AVERAGE.mean(),
-        'POSTURE_STD': other_two_models.POSTURE_AVERAGE.std(),
-        'PA_MEAN': other_two_models.ACTIVITY_AVERAGE.mean(),
-        'PA_STD': other_two_models.ACTIVITY_AVERAGE.std()
+        'POSTURE_MEAN': other_two_models['MUSS_3_POSTURES_AVERAGE'].mean(),
+        'POSTURE_STD': other_two_models['MUSS_3_POSTURES_AVERAGE'].std(),
+        'PA_MEAN': other_two_models['MUSS_22_ACTIVITIES_AVERAGE'].mean(),
+        'PA_STD': other_two_models['MUSS_22_ACTIVITIES_AVERAGE'].std()
     }
     result = pd.DataFrame(result).transpose()
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'numbers_in_abstract.csv')
@@ -633,7 +633,6 @@ def main(input_folder, *, output_folder=None, debug=False, force=True):
     supplementary_table_2(input_folder, output_folder=output_folder, debug=debug)
     dataset_summary(input_folder, output_folder=output_folder, debug=debug)
     numbers_in_abstract(input_folder, output_folder=output_folder, debug=debug)
-    output_folder = generate_run_folder(input_folder, output_folder=output_folder, debug=debug)
     return figure_folder
 
 if __name__ == '__main__':

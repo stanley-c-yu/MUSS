@@ -152,6 +152,7 @@ def prepare_dataset(input_bundles,
                     class_set_file=None,
                     output_folder=None,
                     nonwear_set_file=None,
+                    target=None,
                     **kwargs):
 
     sensor_placements = input_bundles[0]
@@ -182,19 +183,22 @@ def prepare_dataset(input_bundles,
     filtered_bundle = filter_by_pids(filtered_feature_set, pids, class_set)
 
     joined_set = merge_joined_feature_and_class(filtered_bundle)
-    joined_set = filter_by_class_labels(
-        joined_set, ['Transition', 'Unknown'], 'ACTIVITY')
+    if target is None:
+        joined_set = filter_by_class_labels(
+            joined_set, ['Transition', 'Unknown'], 'MUSS_22_ACTIVITIES')
+    else:
+        joined_set = filter_by_class_labels(
+            joined_set, ['Transition', 'Unknown'], target)
 
     if nonwear_set is not None:
         distributed_nonwear_set = distribute_nonwear_to_pids(nonwear_set, pids)
         joined_set = delayed(pd.concat)([joined_set, distributed_nonwear_set])
         joined_set = set_nonwear_classes(joined_set)
 
-    return save_validation_set(joined_set, sensor_placements, feature_type,
-                               os.path.join(output_folder, 'datasets'))
+    return save_validation_set(joined_set, sensor_placements, feature_type, output_folder)
 
 
-def main(input_folder, *, output_folder=None, sites=None, feature_types=None, include_nonwear=False, debug=False, scheduler='processes', profiling=True, force=True):
+def main(input_folder, *, output_folder=None, sites=None, feature_types=None, include_nonwear=False, target=None, debug=False, scheduler='processes', profiling=True, force=True):
     """Prepare validation sets
 
     :param input_folder: Folder path of input raw dataset
@@ -210,7 +214,16 @@ def main(input_folder, *, output_folder=None, sites=None, feature_types=None, in
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    datasets_folder = os.path.join(output_folder, 'datasets')
+    if include_nonwear:
+        if target is None:
+            datasets_folder = os.path.join(output_folder, 'datasets_with_nonwear')
+        else:
+            datasets_folder = os.path.join(output_folder, target + '_datasets_with_nonwear')
+    else:
+        if target is None:
+            datasets_folder = os.path.join(output_folder, 'datasets')
+        else:
+            datasets_folder = os.path.join(output_folder, target + '_datasets')
 
     if not force and os.path.exists(datasets_folder):
         logging.info('Datasets folder exits, skip regenerating...')
@@ -248,8 +261,9 @@ def main(input_folder, *, output_folder=None, sites=None, feature_types=None, in
         feature_set_file=feature_set_file,
         class_set_file=class_set_file,
         nonwear_set_file=nonwear_set_file,
+        target=target,
         pids=pids,
-        output_folder=output_folder)
+        output_folder=datasets_folder)
     
     experiment.compute(scheduler=scheduler, profiling=profiling)
     if profiling:

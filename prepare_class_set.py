@@ -81,7 +81,7 @@ def get_class_row(matched_class, labels, class_map):
             index=[0])
     else:
         matched_classes = pd.DataFrame(
-            data=[[labels] + class_map.loc[class_map['ACTIVITY']
+            data=[[labels] + class_map.loc[class_map['FINEST_ACTIVITIES']
                                            == matched_class, :].values[0].tolist()],
             columns=['ANNOTATION_LABELS'] + class_map.columns.values.tolist(),
             index=[0]
@@ -159,7 +159,7 @@ def prepare_class_set(input_folder, *, output_folder=None, debug=False, schedule
         annotation_files, class_map=class_map, scheduler=scheduler, profiling=profiling)
 
     class_set_unique = class_set.drop_duplicates(
-        subset=['ANNOTATION_LABELS', 'ACTIVITY'], keep='first')
+        subset=['ANNOTATION_LABELS', 'FINEST_ACTIVITIES'], keep='first')
 
     
     classset_unique_filepath = os.path.join(output_folder, 'muss.classmap.csv')

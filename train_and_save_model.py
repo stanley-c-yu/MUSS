@@ -10,6 +10,7 @@ import numpy as np
 
 def main(input_folder,
          *,
+         output_folder=None,
          debug=False,
          targets='ACTIVITY,POSTURE,ACTIVITY_GROUP,THIRTEEN_ACTIVITIES',
          feature_set='MO',
@@ -17,6 +18,7 @@ def main(input_folder,
     """Train and save a model using one of the validation datasets
 
     :param input_folder: Folder path of input raw dataset.
+    :param output_folder: Auto path if None.
     :param debug: Use this flag to output results to 'debug_run' folder.
     :param targets: The list of groups of class labels, separated by ','.
 
@@ -43,8 +45,9 @@ def main(input_folder,
                 'NDA': nondominant ankle;
                 'NDH': nondominant hip.
     """
-    run_folder = generate_run_folder(input_folder, debug=debug)
-    dataset_folder = os.path.join(run_folder, 'datasets')
+    if output_folder is None:
+        output_folder = generate_run_folder(input_folder, debug=debug)
+    dataset_folder = os.path.join(output_folder, 'datasets')
     sites = sites.split(',')
     targets = targets.split(',')
     predefined_targets = [
@@ -64,7 +67,7 @@ def main(input_folder,
             raise Exception("Input parameter 'targets' should be one of " +
                             ','.join(predefined_targets))
     class_mapping = grouping_file(input_folder)
-    train_and_save_model(dataset_folder, sites=sites,
+    return train_and_save_model(dataset_folder, sites=sites,
                          feature_set=feature_set, targets=targets, class_mapping=class_mapping)
 
 
@@ -108,6 +111,7 @@ def train_and_save_model(dataset_folder,
                 dataset, get_train_target(target))
             save_model(model_path, target, model, scaler, training_accuracy,
                        feature_order, class_mapping)
+    return model_folder
 
 
 def get_train_target(target):

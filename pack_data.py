@@ -23,18 +23,8 @@ def _compress_data_with_python(source_dir, out_dir, out_name):
 
 def pack_data(source_dir, out_dir, out_name):
     os.makedirs(out_dir, exist_ok=True)
-    if check_tar_available():
-        logging.info('Use system tar command to compress data...')
-        compress_cmd = ['tar','-C', os.path.dirname(source_dir), '-zcf', os.path.join(out_dir, out_name), os.path.basename(source_dir)]
-        exclude_folder = os.path.join(source_dir, 'DerivedCrossParticipants')
-        if os.path.exists(exclude_folder):
-            logging.info('Excluding {} during compressing'.format(exclude_folder))
-            compress_cmd.append('--exclude')
-            compress_cmd.append(exclude_folder)
-        subprocess.run(' '.join(compress_cmd), shell=True, check=True)
-    else:
-        logging.info('Use Python tar module to compress data...')
-        _compress_data_with_python(source_dir, out_dir)
+    logging.info('Use Python tar module to compress data...')
+    _compress_data_with_python(source_dir, out_dir, out_name)
     logging.info('Compression completed')
 
 if __name__ == "__main__":
