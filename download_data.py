@@ -16,7 +16,7 @@ def download_data(*, keep_compressed=False, force=True):
     if os.path.exists(os.path.abspath('./muss_data/')) and not force:
         logging.info('Data has already existed, use the existing data')
         return os.path.abspath('./muss_data/')
-    url = 'https://github.com/qutang/MUSS/releases/download/data/muss_data.tar.gz'
+    url = 'https://github.com/qutang/MUSS/releases/latest/download/muss_data.tar.gz'
     filename = wget.download(url)
     if check_tar_available():
         logging.info('Using system tar command to decompress data file')

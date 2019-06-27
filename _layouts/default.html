@@ -30,43 +30,19 @@
                     href='https://github.com/qutang/MUSS/issues'>github
                     issue</a>.</p>
 
-            <p class="view"><strong><a href='#corresponding-author'>Corresponding author</a></strong></p>
+            <p class="view"><strong>Corresponding author</strong></p>
+
+            <div class="github-card" data-github="qutang" data-width="400" data-height="150" data-theme="default"></div>
+            <script src="//cdn.jsdelivr.net/github-cards/latest/widget.js"></script>
 
             <p class="view"><strong><a href='#citation'>Citation</a></strong></p>
 
-            <p class="view"><strong>Replicate results on MyBinder.org</strong></p>
-            <a href="https://mybinder.org/v2/gh/qutang/MUSS/master"><img src="https://mybinder.org/badge_logo.svg"
-                    alt="Binder"></a>
-            <p class='view'>You may use mybinder.org for a quick interactive start (a jupyter notebook guide). All
-                dependencies are built, but be
-                careful that the process could be slow due to limited resources provided by the cloud server.</p>
-
-            <p class="view"><strong><a href='#replicate-results-using-jupyter-notebook-in-your-local-runtime'>Replicate
-                        results using
-                        jupyter
-                        notebook in your local runtime</a></strong>
-            </p>
-
-            <p class="view">You may also follow the instruction on the right to download data and code to run using the
-                jupyter notebook guidance in your local runtime environment.
-            </p>
-
-            <p class="view"><strong><a href='#replicate-results-from-a-terminal-in-your-local-runtime'>Replicate results
-                        from a
-                        terminal in your
-                        local
-                        runtime</a></strong></p>
-            <p class="view">You may also follow the instruction on the right to download data and code to run locally.
-            </p>
-
-            <p class="view"><strong><a href='#run-model-on-your-own-data'>Train a model and use it on your own
-                        data</a></strong>
-            </p>
+            <p class="view"><strong><a href='#replication-of-results'>Replication of
+                        results</a></strong></p>
 
             {% if site.show_downloads %}
             <ul class="downloads">
-                <li><a href="{{ site.github.data_url }}">Download <strong>MUSS data</strong></a></li>
-                <li><a href="{{ site.github.code_url }}">Download <strong>code</strong></a></li>
+                <li><a href="{{ site.github.release_url }}"><strong>Latest</strong> release</a></li>
                 <li><a href="{{ site.github.repository_url }}">View On <strong>GitHub</strong></a></li>
             </ul>
             {% endif %}

@@ -7,6 +7,7 @@ from pack_data import pack_data
 def _tagging(version, message=None):
     tagging_cmd = ['git', 'tag', '-a', version]
     if message is not None:
+        tagging_cmd.append('-f')
         tagging_cmd.append('-m')
         tagging_cmd.append('"' + message + '"')
     subprocess.run(' '.join(tagging_cmd), check=True, shell=True)

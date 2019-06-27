@@ -20,6 +20,12 @@ section {
     margin-left: 1em
 }
 
+header li {
+  width: 49%
+}
+
+header li:last-child { border-right: none }
+
 header ul a strong {
     padding-top: 0.1em;
 }
