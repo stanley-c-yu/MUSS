@@ -45,5 +45,5 @@ def reproduce(*, force_fresh_data=True, debug=False, parallel=False, profiling=F
     logging.info('Figures and tables are saved to {}'.format(figure_path))
 
 if __name__ == "__main__":
-    run(reproduce)
-    # reproduce(force_fresh_data=False, debug=True, parallel=True, profiling=False, run_ts='2019-06-25-15-54-42')
+    # run(reproduce)
+    reproduce(force_fresh_data=False, debug=True, parallel=True, profiling=False, run_ts='2019-07-01-05-35-00')

@@ -95,6 +95,17 @@ def basic_stat(df, columns, method='min_max'):
         result['SORT'] = sort_col
         return result
 
+def get_sensor_placements(table_data, num_of_sensors, category, use_wrist):
+    use_w_col = 'USE_W' if type(use_wrist) == bool else 'DW_NDW_NONE'
+    condition = (table_data['CATEGORY'] == category) & (table_data['NUM_OF_SENSORS'] == num_of_sensors) & (table_data[use_w_col] == use_wrist)
+    sensor_placements = table_data.loc[condition, 'SENSOR_PLACEMENT'].values
+    return ', '.join(list(map(lambda p: '(' + p.replace('_', ', ') + ')', sensor_placements)))
+
+def get_sensor_placements_table4_nw(table_data, num_of_sensors):
+    condition = (table_data['NUM_OF_SENSORS'] == num_of_sensors) & (table_data['DW_NDW_NONE'] == '')
+    sensor_placements = table_data.loc[condition, 'SENSOR_PLACEMENT'].values
+    return ', '.join(list(map(lambda p: '(' + p.replace('_', ', ') + ')', sensor_placements)))
+
 def table_3(input_folder, output_folder=None, debug=False):
     output_folder, metrics_file, _, _ = prepare_paths(input_folder, output_folder=output_folder, debug=debug)
     output_filepath = os.path.join(output_folder,'figures_and_tables', 'table3.csv')
@@ -127,9 +138,11 @@ def table_3(input_folder, output_folder=None, debug=False):
     # condition 1: A, H, T
     c1 = table3_data['SENSOR_PLACEMENT'].str.contains('A') & table3_data['SENSOR_PLACEMENT'].str.contains('H') & table3_data['SENSOR_PLACEMENT'].str.contains('T')
     table3_data.loc[c1, 'CATEGORY'] = 'A, H, T'
+
     # condition 2: A, T
     c2 = table3_data['SENSOR_PLACEMENT'].str.contains('A') & table3_data['SENSOR_PLACEMENT'].str.contains('T') & (~table3_data['SENSOR_PLACEMENT'].str.contains('H'))
     table3_data.loc[c2, 'CATEGORY'] = 'A, T'
+
     # condition 3: A, H
     c3 = table3_data['SENSOR_PLACEMENT'].str.contains('A') & table3_data['SENSOR_PLACEMENT'].str.contains('H') & (~table3_data['SENSOR_PLACEMENT'].str.contains('T'))
     table3_data.loc[c3, 'CATEGORY'] = 'A, H'
@@ -153,17 +166,24 @@ def table_3(input_folder, output_folder=None, debug=False):
     # condition 8: only W
     c8 = table3_data['SENSOR_PLACEMENT'].str.contains('W') & (~table3_data['SENSOR_PLACEMENT'].str.contains('H')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('A')) & (~table3_data['SENSOR_PLACEMENT'].str.contains('T'))
     table3_data.loc[c8, 'CATEGORY'] = 'W only'
+
+
+    result = table3_data.groupby(['NUM_OF_SENSORS', 'CATEGORY', 'USE_W']).apply(basic_stat, columns=['MUSS_3_POSTURES_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE'], method='mean_std').reset_index(drop=False).sort_values(['USE_W', 'SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=[True, False, True, False]).drop(columns=['SORT'])
+
+    result.insert(1, 'CATEGORY_DETAILS', result[['NUM_OF_SENSORS', 'CATEGORY', 'USE_W']].agg(lambda row: get_sensor_placements(table3_data, row[0], row[1], row[2]), axis='columns'))
     
-    result = table3_data.groupby(['NUM_OF_SENSORS', 'CATEGORY', 'USE_W']).apply(basic_stat, columns=['MUSS_3_POSTURES_AVERAGE', 'LYING_POSTURE', 'SITTING_POSTURE', 'UPRIGHT_POSTURE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
-    
-    result['CATEGORY'] = result['CATEGORY'] + result['USE_W'].transform(lambda x: ' (W)' if x else '')
+    result['CATEGORY'] = result['CATEGORY'] + result['USE_W'].transform(lambda x: ', W' if x else '')
     result = result.drop(columns=['USE_W'])
 
-    best_models.columns = ['# of sensors', 'Sensor placements',
+    best_models.insert(2, 'CATEGORY', best_models['SENSOR_PLACEMENT'])
+
+    best_wrist_models.insert(2, 'CATEGORY', best_wrist_models['SENSOR_PLACEMENT'])
+
+    best_models.columns = ['# of sensors', 'Sensor placements', 'Category',
                                     'Average', 'Lying', 'Sitting', 'Upright']
-    best_wrist_models.columns = ['# of sensors', 'Sensor placements',
+    best_wrist_models.columns = ['# of sensors', 'Sensor placements', 'Category',
                                     'Average', 'Lying', 'Sitting', 'Upright']
-    result.columns = ['# of sensors', 'Sensor placements',
+    result.columns = ['# of sensors', 'Sensor placements', 'Category',
                                     'Average', 'Lying', 'Sitting', 'Upright']
 
     best_models.loc[:, 'Sensor placements'] = best_models['Sensor placements'].transform(
@@ -243,21 +263,28 @@ def table_4(input_folder, output_folder=None, debug=False):
 
     # categorized for wrist models
     w_categories = table4_data.loc[table4_data['USE_W'], :].groupby(['NUM_OF_SENSORS', 'CATEGORY', 'DW_NDW_NONE']).apply(basic_stat, columns=['MUSS_22_ACTIVITIES_AVERAGE',  'MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE', 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'CATEGORY', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
+
+    w_categories.insert(1, 'CATEGORY_DETAILS', w_categories[['NUM_OF_SENSORS', 'CATEGORY', 'DW_NDW_NONE']].agg(lambda row: get_sensor_placements(table4_data, row[0], row[1], row[2]), axis='columns'))
     
     w_categories['CATEGORY'] = w_categories['DW_NDW_NONE'] + ', ' + w_categories['CATEGORY']
     w_categories = w_categories.drop(columns=['DW_NDW_NONE'])
 
     # categorize for non-wrist models
     nw_categories = table4_data.loc[~table4_data['USE_W'], :].groupby(['NUM_OF_SENSORS']).apply(basic_stat, columns=['MUSS_22_ACTIVITIES_AVERAGE',  'MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE', 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE'], method='mean_std').reset_index(drop=False).sort_values(['SORT', 'NUM_OF_SENSORS'], ascending=False).drop(columns=['SORT'])
-    nw_categories.insert(1, 'CATEGORY', 'A, H, T')
 
-    best_models.columns = ['# of sensors', 'Sensor placements',
+    nw_categories.insert(1, 'CATEGORY_DETAILS', nw_categories[['NUM_OF_SENSORS', 'MUSS_22_ACTIVITIES_AVERAGE']].agg(lambda row: get_sensor_placements_table4_nw(table4_data, row[0]), axis='columns'))
+
+    nw_categories.insert(2, 'CATEGORY', 'A, H, T')
+
+    best_models.insert(2, 'CATEGORY_DETAILS', best_models['SENSOR_PLACEMENT'])
+    best_models.columns = ['# of sensors', 'Sensor placements', 'Category',
                                     'Average', 'Between activity groups', 'Within activity groups']
-    best_wrist_models.columns = ['# of sensors', 'Sensor placements',
+    best_wrist_models.insert(2, 'CATEGORY_DETAILS', best_wrist_models['SENSOR_PLACEMENT'])
+    best_wrist_models.columns = ['# of sensors', 'Sensor placements', 'Category',
                                     'Average', 'Between activity groups', 'Within activity groups']
-    w_categories.columns = ['# of sensors', 'Sensor placements',
+    w_categories.columns = ['# of sensors', 'Sensor placements', 'Category',
                                     'Average', 'Between activity groups', 'Within activity groups']
-    nw_categories.columns = ['# of sensors', 'Sensor placements',
+    nw_categories.columns = ['# of sensors', 'Sensor placements', 'Category',
                                     'Average', 'Between activity groups', 'Within activity groups']
 
     best_models.loc[:, 'Sensor placements'] = best_models['Sensor placements'].transform(
@@ -622,9 +649,9 @@ def main(input_folder, *, output_folder=None, debug=False, force=True):
     :param debug: Use this flag to output results to 'debug_run' folder
     """
     figure_folder = os.path.join(output_folder,'figures_and_tables')
-    if not force and os.path.exists(figure_folder):
-        logging.info('Figures exist, skip regenerating them...')
-        return figure_folder
+    # if not force and os.path.exists(figure_folder):
+    #     logging.info('Figures exist, skip regenerating them...')
+    #     return figure_folder
     table_3(input_folder, output_folder=output_folder, debug=debug)
     table_4(input_folder, output_folder=output_folder, debug=debug)
     figure_1(input_folder, output_folder=output_folder, debug=debug)
