@@ -1,6 +1,6 @@
 import glob
 import pandas as pd
-from helper.svm_model import svm_model
+from helper.svm_model import svm_model, rf_model
 from helper.utils import generate_run_folder
 import os
 import pickle
@@ -12,21 +12,15 @@ def main(input_folder,
          *,
          output_folder=None,
          debug=False,
-         targets='ACTIVITY,POSTURE,ACTIVITY_GROUP,THIRTEEN_ACTIVITIES',
+         targets='MDCAS,RIAR_17_ACTIVITIES',
          feature_set='MO',
-         sites='DW,DA'):
+         sites='DW,DA', include_nonwear=False, model_type='svm'):
     """Train and save a model using one of the validation datasets
 
     :param input_folder: Folder path of input raw dataset.
     :param output_folder: Auto path if None.
     :param debug: Use this flag to output results to 'debug_run' folder.
     :param targets: The list of groups of class labels, separated by ','.
-
-                Allowed targets:
-                'ACTIVITY': 22-class activity labels;
-                'POSTURE': 3-class posture labels;
-                'SEDENTARY_AMBULATION_CYCLING': 4-class labels (see Mannini 2010);
-                'THIRTEEN_ACTIVITIES': used for the interactive system.
 
     :param feature_set: Choose the type of feature set to be used.
 
@@ -47,12 +41,11 @@ def main(input_folder,
     """
     if output_folder is None:
         output_folder = generate_run_folder(input_folder, debug=debug)
-    dataset_folder = os.path.join(output_folder, 'datasets')
     sites = sites.split(',')
     targets = targets.split(',')
     predefined_targets = [
-        'POSTURE', 'ACTIVITY', 'THIRTEEN_ACTIVITIES',
-        'ACTIVITY_GROUP', 'SEDENTARY_AMBULATION_CYCLING', 'MDCAS'
+        'MUSS_3_POSTURES', 'MUSS_22_ACTIVITIES', 'RIAR_17_ACTIVITIES',
+        'MDCAS'
     ]
     predefined_sites = ['DW', 'DA', 'DT', 'DH', 'NDW', 'NDA', 'NDH']
     if feature_set not in ['MO', 'O', 'M']:
@@ -67,8 +60,12 @@ def main(input_folder,
             raise Exception("Input parameter 'targets' should be one of " +
                             ','.join(predefined_targets))
     class_mapping = grouping_file(input_folder)
-    return train_and_save_model(dataset_folder, sites=sites,
-                         feature_set=feature_set, targets=targets, class_mapping=class_mapping)
+    suffix = '_with_nonwear' if include_nonwear else ''
+    for target in targets:
+        dataset_folder = os.path.join(output_folder, target + '_datasets' + suffix)
+        train_and_save_model(dataset_folder, sites=sites,
+                         feature_set=feature_set, target=target, class_mapping=class_mapping, model_type=model_type)
+    return os.path.join(os.path.dirname(dataset_folder), 'models')
 
 
 def grouping_file(input_folder):
@@ -79,10 +76,10 @@ def grouping_file(input_folder):
 
 
 def train_and_save_model(dataset_folder,
-                         targets=['ACTIVITY', 'POSTURE'],
+                         target='MUSS_3_POSTURES',
                          sites=['DW', 'DA'],
                          feature_set='MO',
-                         class_mapping=None):
+                         class_mapping=None, model_type='svm'):
     validation_set_files = glob.glob(
         os.path.join(dataset_folder, '*.dataset.csv'), recursive=True)
     selected_file = None
@@ -100,34 +97,29 @@ def train_and_save_model(dataset_folder,
     if selected_file:
         dataset = pd.read_csv(
             selected_file, parse_dates=[0, 1], infer_datetime_format=True)
-        for target in targets:
-            model_path = os.path.join(
-                model_folder,
-                os.path.basename(selected_file).replace(
-                    'dataset',
-                    target.lower() + '_model').replace('csv', 'pkl'))
+        model_path = os.path.join(
+            model_folder,
+            os.path.basename(selected_file).replace(
+                'dataset',
+                target.lower() + '_model').replace('csv', 'pkl'))
 
-            model, scaler, training_accuracy, feature_order = train_model(
-                dataset, get_train_target(target))
-            save_model(model_path, target, model, scaler, training_accuracy,
-                       feature_order, class_mapping)
-    return model_folder
+        model, scaler, training_accuracy, feature_order = train_model(
+            dataset, get_train_target(target), model_type=model_type)
+        save_model(model_path, target, model, scaler, training_accuracy,
+                    feature_order, class_mapping)
 
 
 def get_train_target(target):
-    if target == 'ACTIVITY' or target == 'POSTURE' or target == 'MDCAS':
+    if target == 'MUSS_22_ACTIVITIES' or target == 'MUSS_3_POSTURES' or target == 'MDCAS' or target == 'RIAR_17_ACTIVITIES':
         return target
     else:
         return 'ACTIVITY'
 
 
-def train_model(dataset, train_target):
+def train_model(dataset, train_target, model_type='svm'):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
-        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "ACTIVITY",
-        "POSTURE", "ACTIVITY_GROUP", "MDCAS", "THIRTEEN_ACTIVITIES",
-        "CLASSIC_SEVEN_ACTIVITIES", "SEDENTARY_AMBULATION_CYCLING",
-        'ACTIVITY_ABBR'
+        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "FINEST_ACTIVITIES","MUSS_22_ACTIVITIES","MUSS_3_POSTURES","MUSS_6_ACTIVITY_GROUPS","MDCAS","RIAR_17_ACTIVITIES","SEDENTARY_AMBULATION_CYCLING","MUSS_22_ACTIVITY_ABBRS"
     ]
     exclude_labels = ['Unknown', 'Transition']
     dataset = dataset.loc[np.logical_not(dataset[train_target].
@@ -136,7 +128,11 @@ def train_model(dataset, train_target):
     indexed_dataset = dataset.set_index(index_cols)
     X = indexed_dataset.values
     feature_order = list(indexed_dataset.columns)
-    model, scaler, training_accuracy = svm_model(X, y)
+    if model_type == 'svm':
+        selected_model = svm_model
+    elif model_type == 'rf':
+        selected_model = rf_model
+    model, scaler, training_accuracy = selected_model(X, y)
     return model, scaler, training_accuracy, feature_order
 
 

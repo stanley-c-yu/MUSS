@@ -32,13 +32,25 @@ def svm_model(input_matrix,
     return (model, scaler, train_accuracy)
 
 
+def rf_model(input_matrix,
+              input_classes,):
+    input_matrix, input_classes = shuffle(input_matrix, input_classes)
+    classifier = RandomForestClassifier(
+        n_estimators=100, max_depth=None, min_samples_split=2, random_state=0, n_jobs=-1)
+    scaler = MinMaxScaler((-1, 1))
+    scaled_X = scaler.fit_transform(input_matrix)
+    model = classifier.fit(scaled_X, input_classes)
+    train_accuracy = model.score(scaled_X, input_classes)
+    return (model, scaler, train_accuracy)
+
+
 def test_model(test_matrix, test_classes, model, scaler):
     scaled_X = scaler.transform(test_matrix)
     predicted_classes = model.predict(scaled_X)
     return (predicted_classes)
 
 
-def loso_validation(input_matrix, input_classes, groups, **model_kwargs):
+def loso_validation(input_matrix, input_classes, groups, model_type, **model_kwargs):
     loso = LeaveOneGroupOut()
     output_predictions = np.copy(input_classes)
     for train_indices, test_indices in loso.split(
@@ -47,7 +59,11 @@ def loso_validation(input_matrix, input_classes, groups, **model_kwargs):
         train_labels = input_classes[train_indices]
         test_set = input_matrix[test_indices, :]
         test_labels = input_classes[test_indices]
-        model, scaler, _ = svm_model(train_set, train_labels, **model_kwargs)
+        if model_type == 'svm':
+            selected_model = svm_model
+        elif model_type == 'rf':
+            selected_model = rf_model
+        model, scaler, _ = selected_model(train_set, train_labels, **model_kwargs)
         predicted_labels = test_model(test_set, test_labels, model, scaler)
         output_predictions[test_indices] = predicted_labels
     metric = f1_score(input_classes, output_predictions, average='macro')

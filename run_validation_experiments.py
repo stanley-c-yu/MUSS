@@ -11,11 +11,11 @@ from clize import run
 import logging
 
 
-def run_all_experiments(dataset_folder, scheduler='processes', profiling=True):
+def run_all_experiments(dataset_folder, scheduler='processes', profiling=True, model_type='svm'):
     output_folder = dataset_folder.replace('datasets', 'predictions')
     os.makedirs(output_folder, exist_ok=True)
     validation_files = glob(os.path.join(dataset_folder, '*.dataset.csv'))
-    experiments = ForLoop(validation_files, run_single_experiment)
+    experiments = ForLoop(validation_files, run_single_experiment, model_type=model_type)
     experiments.compute(scheduler=scheduler, profiling=profiling)
     if profiling:
         try:
@@ -42,7 +42,7 @@ def exclude_unknown_and_transition(validation_set, target):
     return validation_set
 
 
-def run_single_experiment(validation_set_file, target=None):
+def run_single_experiment(validation_set_file, target=None, model_type='svm'):
     validation_set = delayed(pd.read_csv)(
         validation_set_file, parse_dates=[0, 1], infer_datetime_format=True)
     if target is not None:
@@ -53,7 +53,7 @@ def run_single_experiment(validation_set_file, target=None):
     for target in targets:
         validation_set = exclude_unknown_and_transition(
         validation_set, target=target)
-        prediction = run_loso(validation_set, target)
+        prediction = run_loso(validation_set, target, model_type=model_type)
         predictions[target + '_PREDICTION'] = prediction
     prediction_set = append_prediction(validation_set, predictions)
     return save_prediction_set(prediction_set, validation_set_file, target=target)
@@ -88,10 +88,10 @@ def append_prediction(validation_set, predictions):
 
 
 @delayed
-def run_loso(validation_set, target):
+def run_loso(validation_set, target, model_type='svm'):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
-        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "FINEST_ACTIVITIES","MUSS_22_ACTIVITIES","MUSS_3_POSTURES","MUSS_6_ACTIVITY_GROUPS","MDCAS","RIAR_15_ACTIVITIES","SEDENTARY_AMBULATION_CYCLING","MUSS_22_ACTIVITY_ABBRS"
+        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "FINEST_ACTIVITIES","MUSS_22_ACTIVITIES","MUSS_3_POSTURES","MUSS_6_ACTIVITY_GROUPS","MDCAS","RIAR_17_ACTIVITIES","SEDENTARY_AMBULATION_CYCLING","MUSS_22_ACTIVITY_ABBRS"
     ]
     placements = validation_set['SENSOR_PLACEMENT'].values[0]
     feature_type = validation_set['FEATURE_TYPE'].values[0]
@@ -99,13 +99,13 @@ def run_loso(validation_set, target):
     indexed_validation_set = validation_set.set_index(index_cols)
     X = indexed_validation_set.values
     groups = validation_set['PID'].values
-    y_pred, metric = loso_validation(X, y, groups=groups)
+    y_pred, metric = loso_validation(X, y, groups=groups, model_type=model_type)
     print(placements + "'F1-score, using " + feature_type + " features for " +
           target + ' is: ' + str(metric))
     return y_pred
 
 
-def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True, sites=None, feature_set=None, target=None, include_nonwear=False):
+def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True, sites=None, feature_set=None, target=None, include_nonwear=False, model_type='svm'):
     """Run validation experiments.
 
     :param input_folder: Folder path of input raw dataset
@@ -141,16 +141,15 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
         dataset_folder = os.path.join(output_folder, target + '_datasets' + suffix)
 
     if sites is None or feature_set is None or target is None:
-        run_all_experiments(dataset_folder, scheduler=scheduler, profiling=profiling)
+        run_all_experiments(dataset_folder, scheduler=scheduler, profiling=profiling, model_type=model_type)
     else:
         sites = sites.split(',')
-        sites.sort()
         sites = '_'.join(sites)
         validation_file = os.path.join(
             dataset_folder, sites + '.' + feature_set + '.dataset.csv')
         print(validation_file)
         experiments = ForLoop(
-            [validation_file], run_single_experiment, target=target)
+            [validation_file], run_single_experiment, target=target, model_type=model_type)
         experiments.compute(scheduler='sync')
     return prediction_folder
 
