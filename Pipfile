@@ -18,6 +18,8 @@ pyyaml = ">=4.2b1"
 urllib3 = ">=1.24.2"
 Jinja2 = ">=2.10.1"
 wget = "*"
+arus = {git = "https://github.com/qutang/arus.git", editable = true}
+distributed = "==2.1.0"
 
 [dev-packages]
 pylint = "<2.0.0"
