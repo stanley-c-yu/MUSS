@@ -11,7 +11,7 @@ from helper.utils import generate_run_folder
 from clize import run
 import datetime
 
-def build_riar(*, sites='DW,DA', force_fresh_data=True, debug=False, parallel=False, profiling=False, run_ts='new'):
+def build_riar(*, sites='DW,DA', model_type='svm', force_fresh_data=True, debug=False, parallel=False, profiling=False, run_ts='new'):
     logging_level = logging.DEBUG if debug else logging.INFO
     scheduler = 'processes' if parallel else 'sync'
     logging.basicConfig(level=logging_level, format='[%(levelname)s] %(asctime)-15s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -34,12 +34,12 @@ def build_riar(*, sites='DW,DA', force_fresh_data=True, debug=False, parallel=Fa
     dataset_path = prepare_validation_set(data_folderpath, output_folder=output_folder, sites=sites, feature_types='MO', include_nonwear=False, debug=debug, scheduler=scheduler, profiling=profiling, force=force_fresh_data, target='RIAR_17_ACTIVITIES')
     logging.info('Validation set are saved to {}'.format(dataset_path))
     logging.info('Running validation experiments...')
-    prediction_path = run_validation_experiments(data_folderpath, output_folder=output_folder, sites=sites, feature_set='MO', target='RIAR_17_ACTIVITIES', include_nonwear=False, model_type='rf', debug=debug, scheduler=scheduler, profiling=profiling, force=force_fresh_data)
+    prediction_path = run_validation_experiments(data_folderpath, output_folder=output_folder, sites=sites, feature_set='MO', target='RIAR_17_ACTIVITIES', include_nonwear=False, model_type=model_type, debug=debug, scheduler=scheduler, profiling=profiling, force=force_fresh_data)
     logging.info('Prediction results are saved to {}'.format(prediction_path))
     logging.info('Train and save RIAR model...')
-    model_folder = train_and_save_model(data_folderpath, output_folder=output_folder, debug=debug, targets='RIAR_17_ACTIVITIES', feature_set='MO', sites=sites, model_type='rf', include_nonwear=False)
+    model_folder = train_and_save_model(data_folderpath, output_folder=output_folder, debug=debug, targets='RIAR_17_ACTIVITIES', feature_set='MO', sites=sites, model_type=model_type, include_nonwear=False)
     logging.info('Model is saved to {}'.format(model_folder))
 
 
 if __name__ == "__main__":
-    build_riar(sites='DW,DA', force_fresh_data=False, debug=False, parallel=True, profiling=False, run_ts='2019-07-11-15-46-02')
+    build_riar(sites='DW,DA', model_type='svm', force_fresh_data=False, debug=False, parallel=True, profiling=False, run_ts='2019-07-11-15-46-02')

@@ -101,7 +101,7 @@ def train_and_save_model(dataset_folder,
             model_folder,
             os.path.basename(selected_file).replace(
                 'dataset',
-                target.lower() + '_model').replace('csv', 'pkl'))
+                target.lower() + '_' + model_type + '_model').replace('csv', 'pkl'))
 
         model, scaler, training_accuracy, feature_order = train_model(
             dataset, get_train_target(target), model_type=model_type)
@@ -113,7 +113,7 @@ def get_train_target(target):
     if target == 'MUSS_22_ACTIVITIES' or target == 'MUSS_3_POSTURES' or target == 'MDCAS' or target == 'RIAR_17_ACTIVITIES':
         return target
     else:
-        return 'ACTIVITY'
+        return 'MUSS_22_ACTIVITIES'
 
 
 def train_model(dataset, train_target, model_type='svm'):

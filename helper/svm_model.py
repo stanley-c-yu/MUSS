@@ -20,7 +20,7 @@ def svm_model(input_matrix,
         kernel=kernel,
         gamma=gamma,
         tol=tol,
-        probability=False,
+        probability=True,
         class_weight='balanced')
     # verbose=False)
     # classifier = RandomForestClassifier(
