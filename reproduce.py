@@ -11,7 +11,7 @@ from clize import run
 import datetime
 
 
-def reproduce(*, force_fresh_data=True, debug=False, parallel=False, profiling=False, run_ts='new', name='muss_default', sampling_rate=80, resample_sr=80):
+def reproduce(*, force_fresh_data=True, debug=False, parallel=False, profiling=False, run_ts='new', name=None, sampling_rate=80, resample_sr=80):
     logging_level = logging.DEBUG if debug else logging.INFO
     scheduler = 'processes' if parallel else 'sync'
     logging.basicConfig(level=logging_level, format='[%(levelname)s] %(asctime)-15s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -51,4 +51,4 @@ def reproduce(*, force_fresh_data=True, debug=False, parallel=False, profiling=F
 
 if __name__ == "__main__":
     # run(reproduce)
-    reproduce(force_fresh_data=False, debug=True, parallel=True, profiling=False, run_ts='2019-07-15-16-42-19', name='resample_50', sampling_rate=80, resample_sr=50)
+    reproduce(force_fresh_data=False, debug=True, parallel=True, profiling=False, run_ts='2019-07-15-16-42-19', sampling_rate=80, resample_sr=80)
