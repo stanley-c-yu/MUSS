@@ -358,7 +358,7 @@ def figure_1(input_folder, output_folder=None, debug=False):
     rcParams['font.size'] = 12
     rcParams['font.serif'] = ['Times New Roman']
     # setup configurations
-    figure_file_extensions = ['.png', '.svg', '.pdf', '.eps']
+    figure_file_extensions = ['.png', '.svg', '.pdf', '.eps', '.tif', '.jpeg']
     output_filepaths = [os.path.join(output_folder, 'figures_and_tables', 'figure1' + extension) for extension in figure_file_extensions]
     os.makedirs(os.path.dirname(output_filepaths[0]), exist_ok=True)
 
@@ -405,7 +405,7 @@ def figure_1(input_folder, output_folder=None, debug=False):
     point_plot_data = point_plot_data.reset_index(drop=True).drop_duplicates()
 
     # draw plots
-    g, axes = plt.subplots(2, 2, figsize=(8, 8))
+    g, axes = plt.subplots(2, 2, figsize=(7, 7))
     sns.set_context("paper")
     sns.set_style("white")
     for task, index in zip(['Posture', 'PA'], [0, 1]):
@@ -466,7 +466,7 @@ def figure_1(input_folder, output_folder=None, debug=False):
     # save figure in different formats
     for output_filepath in output_filepaths:
         print('save ' + output_filepath)
-        plt.savefig(output_filepath, dpi=300, orientation='landscape')
+        plt.savefig(output_filepath, dpi=1200, orientation='landscape', bbox_inches='tight')
 
     # save associated table
     output_filepath = os.path.join(os.path.dirname(output_filepaths[0]), 'figure1.csv')
@@ -500,11 +500,11 @@ def figure_2(input_folder, output_folder=None, debug=False):
     plt.tight_layout()
 
     # save plot
-    figure_file_extensions = ['.png', '.svg', '.pdf', '.eps']
+    figure_file_extensions = ['.png', '.svg', '.pdf', '.eps', '.tif', '.jpeg']
     output_filepaths = [os.path.join(output_folder,'figures_and_tables', 'figure2' + extension) for extension in figure_file_extensions]
     os.makedirs(os.path.dirname(output_filepaths[0]), exist_ok=True)
     for output_filepath in output_filepaths:
-        plt.savefig(output_filepath, dpi=300, orientation='landscape')
+        plt.savefig(output_filepath, dpi=1200, orientation='landscape', bbox_inches='tight')
 
     # prepare plot associated table
     labels = get_pa_labels(input_folder)

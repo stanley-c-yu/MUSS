@@ -130,7 +130,7 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
     if target is None:
         prediction_folder = os.path.join(output_folder, 'predictions' + suffix)
     else:
-        prediction_folder = os.path.join(output_folder, target + '_predictions' + suffix)
+        prediction_folder = os.path.join(output_folder, target + "_" + model_type + '_predictions' + suffix)
 
     if not force and os.path.exists(prediction_folder):
         logging.info("Prediction folder exists, skip regenerating it...")

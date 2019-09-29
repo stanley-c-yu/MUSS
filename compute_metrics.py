@@ -11,35 +11,35 @@ from clize import run
 import logging
 
 
-def pa_to_activity_group(prediction_set):
-    mapping = prediction_set.groupby('MUSS_22_ACTIVITIES').apply(
+def pa_to_activity_group(prediction_set, target):
+    mapping = prediction_set.groupby(target).apply(
         lambda chunk: chunk['MUSS_6_ACTIVITY_GROUPS'].values[0]).to_dict()
     prediction_set.loc[:, 'MUSS_6_ACTIVITY_GROUPS_PREDICTION'] = prediction_set[
-        'MUSS_22_ACTIVITIES_PREDICTION'].map(mapping)
+        target + '_PREDICTION'].map(mapping)
     labels = list(set(mapping.values()))
     return prediction_set, labels
 
 
-def get_pa_labels(input_folder):
+def get_pa_labels(input_folder, targets):
     filepath = os.path.join(input_folder, 'MetaCrossParticipants',
                             'muss_class_labels.csv')
     label_mapping = pd.read_csv(filepath)
-    labels = label_mapping['MUSS_22_ACTIVITIES'].unique().tolist()
+    labels = label_mapping[targets].unique().tolist()
     labels.remove('Unknown')
     labels.remove('Transition')
     return labels
 
 
-def pa_confusion_matrix(prediction_set, labels):
-    y_true = prediction_set['MUSS_22_ACTIVITIES']
-    y_pred = prediction_set['MUSS_22_ACTIVITIES_PREDICTION']
+def pa_confusion_matrix(prediction_set, labels, target):
+    y_true = prediction_set[target]
+    y_pred = prediction_set[target + '_PREDICTION']
     conf_mat = confusion_matrix(y_true, y_pred, labels)
     conf_df = pd.DataFrame(conf_mat, columns=labels, index=labels)
     return conf_df
 
 
-def pa_metric(prediction_set):
-    prediction_set, labels = pa_to_activity_group(prediction_set)
+def pa_metric(prediction_set, target):
+    prediction_set, labels = pa_to_activity_group(prediction_set, target)
     report = {}
     average_f1_inter = f1_score(
         y_true=prediction_set['MUSS_6_ACTIVITY_GROUPS'],
@@ -50,10 +50,10 @@ def pa_metric(prediction_set):
         y_pred=prediction_set['MUSS_6_ACTIVITY_GROUPS_PREDICTION'],
         labels=labels,
         average=None)
-    report['MUSS_22_ACTIVITIES_AVERAGE'] = [
+    report[target + '_AVERAGE'] = [
         f1_score(
-            y_true=prediction_set['MUSS_22_ACTIVITIES'],
-            y_pred=prediction_set['MUSS_22_ACTIVITIES_PREDICTION'],
+            y_true=prediction_set[target],
+            y_pred=prediction_set[target + '_PREDICTION'],
             average='macro')
     ]
     report['MUSS_6_ACTIVITY_GROUPS_INTER_AVERAGE'] = [average_f1_inter]
@@ -67,15 +67,15 @@ def pa_metric(prediction_set):
             prediction_set_inner['MUSS_6_ACTIVITY_GROUPS_PREDICTION'] == label]
         report[label.upper() + "_IN_GROUP"] = [
             f1_score(
-                y_true=prediction_set_inner['MUSS_22_ACTIVITIES'],
-                y_pred=prediction_set_inner['MUSS_22_ACTIVITIES_PREDICTION'],
+                y_true=prediction_set_inner[target],
+                y_pred=prediction_set_inner[target + '_PREDICTION'],
                 average='macro')
         ]
     report = pd.DataFrame(data=report)
     report.insert(
         2, 'MUSS_6_ACTIVITY_GROUPS_INNER_AVERAGE',
         np.mean(
-            report.select(lambda x: 'IN_GROUP' in x, axis=1).values, axis=1))
+            report.loc[:,list(filter(lambda x: 'IN_GROUP' in x, report.columns))].values, axis=1))
     report = report.reset_index(drop=True)
     return (report)
 
@@ -98,9 +98,7 @@ def compute_metrics_for_single_file(prediction_set_file, targets,
                                     dataset_folder):
     prediction_set = delayed(pd.read_csv)(
         prediction_set_file, parse_dates=[0, 1], infer_datetime_format=True)
-    pa_labels = delayed(get_pa_labels)(dataset_folder)
-    result = _compute_metrics(prediction_set, targets, pa_labels,
-                              prediction_set_file)
+    result = _compute_metrics(dataset_folder, prediction_set, targets, prediction_set_file)
 
     return result
 
@@ -114,7 +112,7 @@ def save_confusion_matrix(prediction_set_file, conf):
 
 
 @delayed
-def _compute_metrics(prediction_set, targets, pa_labels, prediction_set_file):
+def _compute_metrics(input_folder, prediction_set, targets, prediction_set_file):
     metrics = []
     placements = prediction_set['SENSOR_PLACEMENT'].values[0]
     feature_type = prediction_set['FEATURE_TYPE'].values[0]
@@ -122,9 +120,10 @@ def _compute_metrics(prediction_set, targets, pa_labels, prediction_set_file):
     for target in targets:
         if target == 'MUSS_3_POSTURES':
             report = posture_metric(prediction_set)
-        elif target == 'MUSS_22_ACTIVITIES':
-            report = pa_metric(prediction_set)
-            conf_df = pa_confusion_matrix(prediction_set, pa_labels)
+        else:
+            pa_labels = get_pa_labels(input_folder, target)
+            report = pa_metric(prediction_set, target)
+            conf_df = pa_confusion_matrix(prediction_set, pa_labels, target)
             save_confusion_matrix(prediction_set_file, conf_df)
             print('saved confusion matrix: ' + placements + ' ' + feature_type)
         report.insert(0, 'SENSOR_PLACEMENT', placements)

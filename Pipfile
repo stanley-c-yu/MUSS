@@ -20,6 +20,7 @@ Jinja2 = ">=2.10.1"
 wget = "*"
 arus = {git = "https://github.com/qutang/arus.git", editable = true}
 distributed = "==2.1.0"
+pillow = "*"
 
 [dev-packages]
 pylint = "<2.0.0"
