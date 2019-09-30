@@ -56,27 +56,27 @@ def run_single_experiment(validation_set_file, target=None, model_type='svm'):
         prediction = run_loso(validation_set, target, model_type=model_type)
         predictions[target + '_PREDICTION'] = prediction
     prediction_set = append_prediction(validation_set, predictions)
-    return save_prediction_set(prediction_set, validation_set_file, target=target)
+    return save_prediction_set(prediction_set, validation_set_file, model_type=model_type, target=target)
 
 
 @delayed
-def save_prediction_set(prediction_set, validation_set_file, target=None):
+def save_prediction_set(prediction_set, validation_set_file, model_type, target=None):
     placements = prediction_set['SENSOR_PLACEMENT'].values[0]
     print('Saving prediction set for: ' + placements)
     output_filepath = validation_set_file.replace(
-        'datasets', 'predictions').replace('dataset.csv', 'prediction.csv')
+        'datasets', 'predictions').replace('dataset.csv', model_type + '_prediction.csv')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
     prediction_set.to_csv(output_filepath, index=False, float_format='%.9f')
     return prediction_set
 
 
-def save_prediction_sets(prediction_sets):
+def save_prediction_sets(prediction_sets, model_type):
     for prediction_set in prediction_sets:
         placements = prediction_set['DATA']['SENSOR_PLACEMENT'].values[0]
         print('Saving prediction set for: ' + placements)
         output_filepath = prediction_set['FILE'].replace(
             'validation_sets', 'prediction_sets').replace(
-                'dataset.csv', 'prediction.csv')
+                'dataset.csv', model_type + '_prediction.csv')
         prediction_set['DATA'].to_csv(
             output_filepath, index=False, float_format='%.9f')
 

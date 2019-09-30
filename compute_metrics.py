@@ -94,25 +94,25 @@ def posture_metric(prediction_set):
     return (report)
 
 
-def compute_metrics_for_single_file(prediction_set_file, targets,
+def compute_metrics_for_single_file(prediction_set_file, targets, model_type,
                                     dataset_folder):
     prediction_set = delayed(pd.read_csv)(
         prediction_set_file, parse_dates=[0, 1], infer_datetime_format=True)
-    result = _compute_metrics(dataset_folder, prediction_set, targets, prediction_set_file)
+    result = _compute_metrics(dataset_folder, prediction_set, targets, model_type, prediction_set_file)
 
     return result
 
 
-def save_confusion_matrix(prediction_set_file, conf):
+def save_confusion_matrix(prediction_set_file, model_type, conf):
     output_filepath = prediction_set_file.replace(
-        'predictions', 'confusion_matrices').replace('.prediction.csv',
-                                                     '.confusion_matrix.csv')
+        'predictions', 'confusion_matrices').replace('.' + model_type + '_prediction.csv',
+                                                     '.' + model_type + '_confusion_matrix.csv')
     os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
     conf.to_csv(output_filepath, index=True, float_format='%.3f')
 
 
 @delayed
-def _compute_metrics(input_folder, prediction_set, targets, prediction_set_file):
+def _compute_metrics(input_folder, prediction_set, targets, model_type, prediction_set_file):
     metrics = []
     placements = prediction_set['SENSOR_PLACEMENT'].values[0]
     feature_type = prediction_set['FEATURE_TYPE'].values[0]
@@ -124,7 +124,7 @@ def _compute_metrics(input_folder, prediction_set, targets, prediction_set_file)
             pa_labels = get_pa_labels(input_folder, target)
             report = pa_metric(prediction_set, target)
             conf_df = pa_confusion_matrix(prediction_set, pa_labels, target)
-            save_confusion_matrix(prediction_set_file, conf_df)
+            save_confusion_matrix(prediction_set_file, model_type, conf_df)
             print('saved confusion matrix: ' + placements + ' ' + feature_type)
         report.insert(0, 'SENSOR_PLACEMENT', placements)
         report.insert(1, 'NUM_OF_SENSORS', num_of_sensors)
@@ -134,7 +134,7 @@ def _compute_metrics(input_folder, prediction_set, targets, prediction_set_file)
     return reduce(pd.merge, metrics)
 
 
-def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True, target=None, include_nonwear=False):
+def main(input_folder, *, output_folder=None, debug=False, scheduler='processes', profiling=True, force=True, target=None,model_type='svm', include_nonwear=False):
     """Compute metrics for the validation predictions.
 
     :param input_folder: Folder path of input raw dataset
@@ -148,7 +148,7 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
     if output_folder is None:
         output_folder = generate_run_folder(input_folder, debug=debug)
 
-    metric_file = os.path.join(output_folder, 'muss.metrics.csv')
+    metric_file = os.path.join(output_folder, 'muss.' + model_type + '_metrics.csv')
     cm_folder = os.path.join(output_folder, 'confusion_matrices')
 
     if not force and os.path.exists(metric_file) and os.path.exists(cm_folder):
@@ -164,7 +164,7 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
     os.makedirs(prediction_set_folder, exist_ok=True)
 
     prediction_set_files = glob(
-        os.path.join(prediction_set_folder, '*.prediction.csv'))
+        os.path.join(prediction_set_folder, '*.' + model_type + '_prediction.csv'))
     if target is None:
         targets = ['MUSS_22_ACTIVITIES', 'MUSS_3_POSTURES']
     else:
@@ -174,6 +174,7 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
         compute_metrics_for_single_file,
         merge_func=delayed(lambda x, **kwargs: pd.concat(x, axis=0)),
         targets=targets,
+        model_type=model_type,
         dataset_folder=input_folder)
     experiment.compute(scheulder=scheduler, profiling=profiling)
     result = experiment.get_result()

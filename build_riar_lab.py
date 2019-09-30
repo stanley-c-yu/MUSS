@@ -37,7 +37,7 @@ def build_riar(*, sites='DW,DA', model_type='svm', force_fresh_data=True, debug=
     prediction_path = run_validation_experiments(data_folderpath, output_folder=output_folder, sites=sites, feature_set='MO', target='RIAR_17_ACTIVITIES', include_nonwear=False, model_type=model_type, debug=debug, scheduler=scheduler, profiling=profiling, force=force_fresh_data)
     logging.info('Prediction results are saved to {}'.format(prediction_path))
     logging.info("Genreting metrices...")
-    metric_file, cm_folder = compute_metrics(data_folderpath, output_folder=output_folder, debug=debug, scheduler=scheduler, profiling=profiling, force=force_fresh_data, target='RIAR_17_ACTIVITIES', include_nonwear=False)
+    metric_file, cm_folder = compute_metrics(data_folderpath, output_folder=output_folder, debug=debug, scheduler=scheduler, profiling=profiling, force=force_fresh_data, target='RIAR_17_ACTIVITIES', model_type = model_type, include_nonwear=False)
     logging.info("Metrics are saved to {}, {}".format(metric_file, cm_folder))
     logging.info('Train and save RIAR model...')
     model_folder = train_and_save_model(data_folderpath, output_folder=output_folder, debug=debug, targets='RIAR_17_ACTIVITIES', feature_set='MO', sites=sites, model_type=model_type, include_nonwear=False)
@@ -45,4 +45,4 @@ def build_riar(*, sites='DW,DA', model_type='svm', force_fresh_data=True, debug=
 
 
 if __name__ == "__main__":
-    build_riar(sites='DW,DA', model_type='svm', force_fresh_data=False, debug=False, parallel=True, profiling=False, run_ts='2019-09-29-17-40-08')
+    build_riar(sites='DW,DA', model_type='rf', force_fresh_data=False, debug=False, parallel=True, profiling=False, run_ts='2019-09-30-15-19-31')
