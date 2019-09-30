@@ -5,9 +5,9 @@ name = "pypi"
 
 [packages]
 clize = "==4.0.3"
-padar-converter = "==0.2.22"
-padar-parallel = ">=0.2.11"
-padar-features = ">=0.2.12"
+padar-converter = {git = "https://github.com/qutang/padar_converter.git", referer = "master"}
+padar-parallel = {git = "https://github.com/qutang/padar_parallel.git", referer = "master"}
+padar-features = {git = "https://github.com/qutang/padar_features.git", referer = "master"}
 graphviz = "*"
 requests = "*"
 matplotlib = "==3.0.0"
@@ -18,7 +18,7 @@ pyyaml = ">=4.2b1"
 urllib3 = ">=1.24.2"
 Jinja2 = ">=2.10.1"
 wget = "*"
-arus = {git = "https://github.com/qutang/arus.git", editable = true}
+arus = {git = "https://github.com/qutang/arus.git", referer = "master"}
 distributed = "==2.1.0"
 pillow = "*"
 
