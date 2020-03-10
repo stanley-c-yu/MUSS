@@ -4,13 +4,14 @@ import os
 import pandas as pd
 import numpy as np
 from helper.utils import generate_run_folder
+import logging
 
 
-def run_saved_model_on_new_dataset(input_folder,
-                                   *,
-                                   debug=False,
-                                   dataset_file,
-                                   model_file):
+def run_custom_model(input_folder,
+                     *,
+                     debug=False,
+                     dataset_file,
+                     model_file):
     """Run a saved model on a new dataset
 
     :param input_folder: Folder path of the input NEW raw dataset.
@@ -48,8 +49,10 @@ def run_saved_model_on_new_dataset(input_folder,
         dataset_file.replace('dataset.csv',
                              name.lower() + '_prediction.csv'))
     p_df.to_csv(result_path, index=False)
-    print('Saved ' + result_path)
+    logging.info('Saved ' + result_path)
 
 
 if __name__ == '__main__':
-    run(run_saved_model_on_new_dataset)
+    # example
+    # run_custom_model('./muss_data', model_file='./muss_data\DerivedCrossParticipants\product_run\models\DW_DA.MO.muss_3_postures_svm_model.pkl', dataset_file='DW_DA.MO.dataset.csv')
+    run(run_custom_model)

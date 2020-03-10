@@ -216,9 +216,11 @@ def main(input_folder, *, output_folder=None, sites=None, feature_types=None, in
 
     if include_nonwear:
         if target is None:
-            datasets_folder = os.path.join(output_folder, 'datasets_with_nonwear')
+            datasets_folder = os.path.join(
+                output_folder, 'datasets_with_nonwear')
         else:
-            datasets_folder = os.path.join(output_folder, target + '_datasets_with_nonwear')
+            datasets_folder = os.path.join(
+                output_folder, target + '_datasets_with_nonwear')
     else:
         if target is None:
             datasets_folder = os.path.join(output_folder, 'datasets')
@@ -264,7 +266,7 @@ def main(input_folder, *, output_folder=None, sites=None, feature_types=None, in
         target=target,
         pids=pids,
         output_folder=datasets_folder)
-    
+
     experiment.compute(scheduler=scheduler, profiling=profiling)
     if profiling:
         try:
