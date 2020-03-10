@@ -1,3 +1,12 @@
+---
+title: Multi-site sensing for activity recognition using accelerometers
+type: post
+date: 2020-03-10T12:21:53.000Z
+excerpt: >-
+  This repo hosts the source codes and dataset for Posture and Physical Activity Detection: Impact of Number of Sensors and Feature Type.
+series: ml
+---
+
 # Multi-site sensing for activity recognition using accelerometers
 
 This repo hosts the source codes and dataset for [Posture and Physical Activity Detection: Impact of Number of Sensors and Feature Type](https://www.doi.org/10.1249/MSS.0000000000002306).
