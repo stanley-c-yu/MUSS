@@ -1,6 +1,6 @@
 # Multi-site sensing for activity recognition using accelerometers
 
-This repo hosts the source codes and dataset for "Posture and Physical Activity Detection: Impact of Number of Sensors and Feature Type" (doi:10.1249/MSS.0000000000002306).
+This repo hosts the source codes and dataset for [Posture and Physical Activity Detection: Impact of Number of Sensors and Feature Type](https://www.doi.org/10.1249/MSS.0000000000002306).
 
 ## Citation
 
@@ -30,10 +30,10 @@ At the root of the project folder, run
 Run with multi-core processing and memory on a new session folder. Overwrite data or results if they are found to exist.
 
 ```bash
->> pipenv run reproduce --parallel --force-fresh-data=True
+>> poetry run reproduce --parallel --force-fresh-data=True
 ```
 
-You may find intermediate and publication results in `./muss_data/DerivedCrossParticipants` in a folder prefixed with `product_run`.
+You may find intermediate and publication results in `./muss_data/DerivedCrossParticipants/product_run`.
 
 ### Sample reproduction results
 
@@ -62,7 +62,7 @@ Make sure you run the `reproduce` script at first.
 You may want to train and save an activity recognition model using the dataset shipped with this repo. To do it, at the root of the project folder, run,
 
 ```bash
->> poetry run python train_and_save_model.py
+>> poetry run python train_custom_model.py
 ```
 
 By default, it will train two dual-sensor models (DW + DA) using motion + orientation feature set, each for postures and daily activities.
@@ -70,7 +70,13 @@ By default, it will train two dual-sensor models (DW + DA) using motion + orient
 ### Get help
 
 ```bash
->> poetry run python train_and_save_model.py --help
+>> poetry run python train_custom_model.py --help
 ```
 
 You may config the type of feature set, the target class labels and the sensor placements used.
+
+## For developers
+
+### Use your custom model for training and testing
+
+You may check out the two files [`train_custom_model.py`](https://github.com/qutang/MUSS/blob/master/train_custom_model.py) and [`run_custom_model.py`](https://github.com/qutang/MUSS/blob/master/run_custom_model.py) and see how different models are called and used.
