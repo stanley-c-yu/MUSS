@@ -1,26 +1,36 @@
 import glob
-import pandas as pd
-from helper.svm_model import svm_model, rf_model
-from helper.utils import generate_run_folder
+import logging
 import os
 import pickle
-from clize import run
+
 import numpy as np
+import pandas as pd
+from clize import run
+
+import steps
+from helper.svm_model import rf_model, svm_model
+from helper.utils import generate_run_folder
 
 
 def main(input_folder,
          *,
          output_folder=None,
          debug=False,
-         targets='MDCAS,RIAR_17_ACTIVITIES',
+         sr=80,
+         targets='MUSS_3_POSTURES,MUSS_22_ACTIVITIES',
          feature_set='MO',
-         sites='DW,DA', include_nonwear=False, model_type='svm'):
-    """Train and save a model using one of the validation datasets
+         sites='DW,DA', include_nonwear=False, model_type='svm', profiling=False):
+    """Train and save a model given a arbitrary dataset stored in mhealth format.
 
     :param input_folder: Folder path of input raw dataset.
     :param output_folder: Auto path if None.
     :param debug: Use this flag to output results to 'debug_run' folder.
     :param targets: The list of groups of class labels, separated by ','.
+
+                Allowed targets:
+                'MUSS_3_POSTURES': includes "sitting", "upright", and "lying"
+                'MUSS_22_ACTIVITIES': includes 22 daily activities used in the muss dataset
+                'MDCAS', 'RIAR_17_ACTIVITIES'
 
     :param feature_set: Choose the type of feature set to be used.
 
@@ -39,8 +49,33 @@ def main(input_folder,
                 'NDA': nondominant ankle;
                 'NDH': nondominant hip.
     """
-    if output_folder is None:
-        output_folder = generate_run_folder(input_folder, debug=debug)
+    logging_level = logging.DEBUG if debug else logging.INFO
+    scheduler = 'processes'
+    force_fresh_data = False
+    logging.basicConfig(
+        level=logging_level, format='[%(levelname)s] %(asctime)-15s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+    output_folder = generate_run_folder(
+        input_folder, debug=debug)
+
+    logging.info('Preparing class set...')
+    classset_path = steps.prepare_class_set(
+        input_folder, output_folder=output_folder,
+        debug=debug, scheduler=scheduler, profiling=profiling, force=force_fresh_data)
+    logging.info('Class set is generated to {}'.format(classset_path))
+
+    logging.info('Preparing feature set...')
+    feature_set_path = steps.prepare_feature_set(
+        input_folder, output_folder=output_folder, debug=debug, scheduler=scheduler,
+        profiling=profiling, force=force_fresh_data, sampling_rate=sr, resample_sr=sr)
+    logging.info('Feature set is generated to {}'.format(feature_set_path))
+
+    logging.info('Preparing validation sets...')
+    dataset_path = steps.prepare_validation_set(
+        input_folder, output_folder=output_folder, debug=debug,
+        scheduler=scheduler, profiling=profiling, force=force_fresh_data, include_nonwear=include_nonwear)
+    logging.info('Validation sets are saved to {}'.format(dataset_path))
+
     sites = sites.split(',')
     targets = targets.split(',')
     predefined_targets = [
@@ -62,9 +97,12 @@ def main(input_folder,
     class_mapping = grouping_file(input_folder)
     suffix = '_with_nonwear' if include_nonwear else ''
     for target in targets:
-        dataset_folder = os.path.join(output_folder, target + '_datasets' + suffix)
+        logging.info('Train ' + model_type + ' model for ' +
+                     target + ' using ' + feature_set + ' feature set.')
+        dataset_folder = os.path.join(
+            output_folder, 'datasets' + suffix)
         train_and_save_model(dataset_folder, sites=sites,
-                         feature_set=feature_set, target=target, class_mapping=class_mapping, model_type=model_type)
+                             feature_set=feature_set, target=target, class_mapping=class_mapping, model_type=model_type)
     return os.path.join(os.path.dirname(dataset_folder), 'models')
 
 
@@ -106,7 +144,8 @@ def train_and_save_model(dataset_folder,
         model, scaler, training_accuracy, feature_order = train_model(
             dataset, get_train_target(target), model_type=model_type)
         save_model(model_path, target, model, scaler, training_accuracy,
-                    feature_order, class_mapping)
+                   feature_order, class_mapping)
+        logging.info('Save model to ' + model_path)
 
 
 def get_train_target(target):
@@ -119,7 +158,7 @@ def get_train_target(target):
 def train_model(dataset, train_target, model_type='svm'):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
-        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "FINEST_ACTIVITIES","MUSS_22_ACTIVITIES","MUSS_3_POSTURES","MUSS_6_ACTIVITY_GROUPS","MDCAS","RIAR_17_ACTIVITIES","SEDENTARY_AMBULATION_CYCLING","MUSS_22_ACTIVITY_ABBRS"
+        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "FINEST_ACTIVITIES", "MUSS_22_ACTIVITIES", "MUSS_3_POSTURES", "MUSS_6_ACTIVITY_GROUPS", "MDCAS", "RIAR_17_ACTIVITIES", "SEDENTARY_AMBULATION_CYCLING", "MUSS_22_ACTIVITY_ABBRS"
     ]
     exclude_labels = ['Unknown', 'Transition']
     dataset = dataset.loc[np.logical_not(dataset[train_target].
@@ -152,6 +191,28 @@ def save_model(model_path, target, model, scaler, training_accuracy,
 
 
 if __name__ == '__main__':
-    # main(input_folder='D:/data/muss_data/',
-    #      debug=True, sites='DW', targets='MDCAS')
     run(main)
+    # examples
+    # train mdcas model
+    # main('./muss_data',
+    #      output_folder=None,
+    #      debug=False,
+    #      sr=80,
+    #      targets='MDCAS',
+    #      feature_set='MO',
+    #      sites='DW',
+    #      include_nonwear=True,
+    #      model_type='svm',
+    #      profiling=False)
+    # train model for active training
+    # main('./muss_data',
+    #      output_folder=None,
+    #      debug=False,
+    #      sr=80,
+    #      targets='RIAR_17_ACTIVITIES',
+    #      feature_set='MO',
+    #      sites='DW,DA,DT',
+    #      include_nonwear=False,
+    #      model_type='svm',
+    #      profiling=False
+    #      )

@@ -2,7 +2,7 @@ import numpy as np
 import os
 from glob import glob
 import pandas as pd
-from helper import log, utils
+from helper import utils
 from padar_converter.mhealth import dataset, fileio, dataframe
 from padar_converter.annotation.data_format import to_mutually_exclusive
 from padar_parallel.groupby import GroupBy, GroupByWindowing
@@ -68,7 +68,8 @@ def get_class_set(annotation_files, class_map, scheduler='synchronous', profilin
         convert_annotations, interval=12.8, step=12.8, class_map=class_map)
     groupby.final_join(delayed(join_as_dataframe))
 
-    class_set = groupby.compute(scheduler=scheduler, profiling=profiling).get_result()
+    class_set = groupby.compute(
+        scheduler=scheduler, profiling=profiling).get_result()
     return (class_set, groupby)
 
 
@@ -161,7 +162,6 @@ def prepare_class_set(input_folder, *, output_folder=None, debug=False, schedule
     class_set_unique = class_set.drop_duplicates(
         subset=['ANNOTATION_LABELS', 'FINEST_ACTIVITIES'], keep='first')
 
-    
     classset_unique_filepath = os.path.join(output_folder, 'muss.classmap.csv')
     profiling_filepath = os.path.join(output_folder,
                                       'classset_computation_profiling.html')

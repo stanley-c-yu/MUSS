@@ -2,7 +2,7 @@ import numpy as np
 import os
 from glob import glob
 import pandas as pd
-from helper import log, utils
+from helper import utils
 from padar_converter.mhealth import dataset, fileio, dataframe
 from padar_parallel.groupby import GroupBy, GroupByWindowing
 from padar_parallel.grouper import MHealthGrouper

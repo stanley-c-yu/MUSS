@@ -15,7 +15,8 @@ def run_all_experiments(dataset_folder, scheduler='processes', profiling=True, m
     output_folder = dataset_folder.replace('datasets', 'predictions')
     os.makedirs(output_folder, exist_ok=True)
     validation_files = glob(os.path.join(dataset_folder, '*.dataset.csv'))
-    experiments = ForLoop(validation_files, run_single_experiment, model_type=model_type)
+    experiments = ForLoop(
+        validation_files, run_single_experiment, model_type=model_type)
     experiments.compute(scheduler=scheduler, profiling=profiling)
     if profiling:
         try:
@@ -52,7 +53,7 @@ def run_single_experiment(validation_set_file, target=None, model_type='svm'):
     predictions = {}
     for target in targets:
         validation_set = exclude_unknown_and_transition(
-        validation_set, target=target)
+            validation_set, target=target)
         prediction = run_loso(validation_set, target, model_type=model_type)
         predictions[target + '_PREDICTION'] = prediction
     prediction_set = append_prediction(validation_set, predictions)
@@ -91,7 +92,7 @@ def append_prediction(validation_set, predictions):
 def run_loso(validation_set, target, model_type='svm'):
     index_cols = [
         "START_TIME", "STOP_TIME", "PID", "SID", "SENSOR_PLACEMENT",
-        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "FINEST_ACTIVITIES","MUSS_22_ACTIVITIES","MUSS_3_POSTURES","MUSS_6_ACTIVITY_GROUPS","MDCAS","RIAR_17_ACTIVITIES","SEDENTARY_AMBULATION_CYCLING","MUSS_22_ACTIVITY_ABBRS"
+        "FEATURE_TYPE", "ANNOTATOR", "ANNOTATION_LABELS", "FINEST_ACTIVITIES", "MUSS_22_ACTIVITIES", "MUSS_3_POSTURES", "MUSS_6_ACTIVITY_GROUPS", "MDCAS", "RIAR_17_ACTIVITIES", "SEDENTARY_AMBULATION_CYCLING", "MUSS_22_ACTIVITY_ABBRS"
     ]
     placements = validation_set['SENSOR_PLACEMENT'].values[0]
     feature_type = validation_set['FEATURE_TYPE'].values[0]
@@ -99,7 +100,8 @@ def run_loso(validation_set, target, model_type='svm'):
     indexed_validation_set = validation_set.set_index(index_cols)
     X = indexed_validation_set.values
     groups = validation_set['PID'].values
-    y_pred, metric = loso_validation(X, y, groups=groups, model_type=model_type)
+    y_pred, metric = loso_validation(
+        X, y, groups=groups, model_type=model_type)
     print(placements + "'F1-score, using " + feature_type + " features for " +
           target + ' is: ' + str(metric))
     return y_pred
@@ -125,12 +127,13 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
             input_folder, debug=debug)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder, exist_ok=True)
-    
+
     suffix = '_with_nonwear' if include_nonwear else ''
     if target is None:
         prediction_folder = os.path.join(output_folder, 'predictions' + suffix)
     else:
-        prediction_folder = os.path.join(output_folder, target + "_" + model_type + '_predictions' + suffix)
+        prediction_folder = os.path.join(
+            output_folder, target + "_" + model_type + '_predictions' + suffix)
 
     if not force and os.path.exists(prediction_folder):
         logging.info("Prediction folder exists, skip regenerating it...")
@@ -138,10 +141,12 @@ def main(input_folder, *, output_folder=None, debug=False, scheduler='processes'
     if target is None:
         dataset_folder = os.path.join(output_folder, 'datasets' + suffix)
     else:
-        dataset_folder = os.path.join(output_folder, target + '_datasets' + suffix)
+        dataset_folder = os.path.join(
+            output_folder, target + '_datasets' + suffix)
 
     if sites is None or feature_set is None or target is None:
-        run_all_experiments(dataset_folder, scheduler=scheduler, profiling=profiling, model_type=model_type)
+        run_all_experiments(dataset_folder, scheduler=scheduler,
+                            profiling=profiling, model_type=model_type)
     else:
         sites = sites.split(',')
         sites = '_'.join(sites)

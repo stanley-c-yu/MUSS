@@ -1,28 +1,51 @@
-__Under development__
+# Multi-site sensing for activity recognition using accelerometers
 
-# Multi- vs. single-site accelerometer sensing for posture and activity recognition using machine learning (MuSS)
-
-_source codes and data_
+This repo hosts the source codes and dataset for [Posture and Physical Activity Detection: Impact of Number of Sensors and Feature Type](https://www.doi.org/10.1249/MSS.0000000000002306).
 
 ## Citation
 
-In-submission.
+If you have used the codes or referred to the manuscript in your publication, please kindly cite the following paper.
+
+> Tang, Q., John, D., Thapa-Chhetry, B., Arguello, D.J. and Intille, S., 2020. Posture and Physical Activity Detection: Impact of Number of Sensors and Feature Type. Medicine & Science in Sports & Exercise. Preprint.
 
 ## Dependencies
 
-1. Python 3.6.5 or above
-2. `pipenv` package. Install using `pip install pipenv`
-3. `git` (optional)
-4. Recommend at least 8-core workstation, otherwise computation will be slow
+1. Python >= 3.7
+2. `poetry` dependency management for python. Install using `pip install poetry`.
+3. `git`
 5. [`graphviz`](https://www.graphviz.org/download/) (optional, required to generate workflow diagram pdf)
 
-## Replication of results
+## Get started
+
+### Install dependencies
+
+At the root of the project folder, run
 
 ```bash
->> pipenv run reproduce --help
+> poetry install
 ```
 
+## Reproduce publication results
+
+Run with multi-core processing and memory on a new session folder. Overwrite data or results if they are found to exist.
+
+```bash
+>> poetry run reproduce --parallel --force-fresh-data=True
+```
+
+You may find intermediate and publication results in `./muss_data/DerivedCrossParticipants/product_run`.
+
+### Sample reproduction results
+
+Check [here](https://github.com/qutang/MUSS/releases/latest/download/sample_reproduction_results.tar.gz) for a sample reproduction results.
+
+### Get help 
+
 Run above command at the root of the repository to see the usage of the reproduction script.
+
+```bash
+>> poetry run python reproduce.py --help
+```
 
 The reproduct script will do the following,
 
@@ -32,16 +55,28 @@ The reproduct script will do the following,
 4. Compute metrics from the outputs of the LOSO cross validations
 5. Generate publication tables and graphs 
 
-### Example
+## Train and save a model using muss dataset
 
-Run with multi-core processing and memory and time profiling on a new session folder. Overwrite data or results if they are found to exist.
+Make sure you run the `reproduce` script at first.
+
+You may want to train and save an activity recognition model using the dataset shipped with this repo. To do it, at the root of the project folder, run,
 
 ```bash
->> pipenv run reproduce --parallel --profiling --run-ts=new --force-fresh-data=True
+>> poetry run python train_custom_model.py
 ```
 
-You may find intermediate and publication results in `./muss_data/DerivedCrossParticipants` in a folder prefixed with `product_run`.
+By default, it will train two dual-sensor models (DW + DA) using motion + orientation feature set, each for postures and daily activities.
 
-### Sample reproduction results
+### Get help
 
-Check [here](https://github.com/qutang/MUSS/releases/latest/download/sample_reproduction_results.tar.gz) for a sample reproduction results.
+```bash
+>> poetry run python train_custom_model.py --help
+```
+
+You may config the type of feature set, the target class labels and the sensor placements used.
+
+## For developers
+
+### Use your custom model for training and testing
+
+You may check out the two files [`train_custom_model.py`](https://github.com/qutang/MUSS/blob/master/train_custom_model.py) and [`run_custom_model.py`](https://github.com/qutang/MUSS/blob/master/run_custom_model.py) and see how different models are called and used.

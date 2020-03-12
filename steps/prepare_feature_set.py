@@ -2,7 +2,7 @@ import numpy as np
 import os
 from glob import glob
 import pandas as pd
-from helper import log, utils
+from helper import utils
 from padar_converter.mhealth import dataset, fileio, dataframe
 from padar_parallel.groupby import GroupBy, GroupByWindowing
 from padar_parallel.grouper import MHealthGrouper
@@ -13,7 +13,7 @@ from padar_features.feature_extractor import FeatureExtractor
 from padar_features.feature_set import FeatureSet
 from padar_features.transformations.accelerometer import orientation
 from padar_features.libs.data_formatting.decorator import apply_on_accelerometer_dataframe
-from arus.libs.signal_processing.filtering import resample
+from arus.core.libs.dsp.filtering import resample
 from clize import run
 from dask import delayed
 from functools import partial
@@ -27,6 +27,7 @@ def resample_timestamps(old_ts, new_n):
     vf = np.vectorize(lambda x: np.datetime64(int(x), 'ms'))
     return vf(new_ts)
 
+
 @delayed
 def resample_data(data, old_sr=80, new_sr=80):
     old_values = data.iloc[:, 1:].values
@@ -37,6 +38,7 @@ def resample_data(data, old_sr=80, new_sr=80):
     result = result.reset_index(drop=False)
     result.columns = data.columns
     return result
+
 
 def load_data(item, all_items, *, old_sr, new_sr, **kwargs):
     # get session boundaries
@@ -49,14 +51,15 @@ def load_data(item, all_items, *, old_sr, new_sr, **kwargs):
         resampled_data = loaded_data
     else:
         print('resampling raw data...from {} to {}'.format(old_sr, new_sr))
-        resampled_data = resample_data(loaded_data, old_sr=old_sr, new_sr=new_sr)
+        resampled_data = resample_data(
+            loaded_data, old_sr=old_sr, new_sr=new_sr)
     return GroupBy.bundle(resampled_data, **metas)
 
 
 @delayed
 @MhealthWindowing.groupby_windowing('sensor')
 def compute_features(df, **kwargs):
-    return FeatureSet.location_matters(df.values[:, 1:], **kwargs)
+    return FeatureSet.muss_features(df.values[:, 1:], **kwargs)
 
 
 def prepare_feature_set(input_folder,
@@ -65,7 +68,7 @@ def prepare_feature_set(input_folder,
                         debug=False,
                         sampling_rate=80,
                         resample_sr=80,
-                        scheduler='processes', 
+                        scheduler='processes',
                         profiling=True,
                         force=True):
     """Compute feature set for "Location Matters" paper by Tang et al.
@@ -90,7 +93,7 @@ def prepare_feature_set(input_folder,
         os.makedirs(output_folder)
 
     feature_filepath = os.path.join(output_folder, 'muss.feature.csv')
-    
+
     if not force and os.path.exists(feature_filepath):
         logging.info('Feature set file exists, skip regenerating it...')
         return feature_filepath
@@ -128,7 +131,8 @@ def prepare_feature_set(input_folder,
 
     groupby.final_join(delayed(join_as_dataframe))
 
-    result = groupby.compute(scheduler=scheduler, profiling=profiling).get_result()
+    result = groupby.compute(
+        scheduler=scheduler, profiling=profiling).get_result()
 
     # rename placements
     result = result.reset_index()
@@ -139,7 +143,6 @@ def prepare_feature_set(input_folder,
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    
     profiling_filepath = os.path.join(output_folder,
                                       'feature_computation_profiling.html')
     workflow_filepath = os.path.join(output_folder,
